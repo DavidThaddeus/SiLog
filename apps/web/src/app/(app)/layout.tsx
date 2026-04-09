@@ -237,17 +237,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
 
     // 2. Load saved weeks + activity bank, or generate fresh from profile
+    const totalWeeks = durationMonthsToWeeks(siwesDuration);
     const saved = await loadUserData(userId);
-    if (saved && saved.weeks.length > 0) {
+    if (saved && saved.weeks.length > 0 && saved.weeks.length === totalWeeks) {
+      // Only use saved data if week count matches the user's current duration
       useDashboardStore.getState().setWeeks(saved.weeks);
       useDashboardStore.setState({ activityBank: saved.activityBank });
     } else if (profile.start_date && profile.attendance_days?.length) {
-      const totalWeeks = durationMonthsToWeeks(siwesDuration);
+      // Generate fresh weeks — either first login or duration was changed
       useDashboardStore.getState().setWeeks(
         generateWeeksFromProfile(profile.start_date, profile.attendance_days, totalWeeks)
       );
       useDashboardStore.setState({
-        activityBank: { items: [], bankedCount: 0, emptyCoverageCount: 0 },
+        activityBank: saved?.activityBank ?? { items: [], bankedCount: 0, emptyCoverageCount: 0 },
       });
     }
 

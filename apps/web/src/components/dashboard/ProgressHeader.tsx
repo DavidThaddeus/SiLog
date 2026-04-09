@@ -9,8 +9,8 @@ export function ProgressHeader() {
 
   const completedWeeks = weeks.filter((w) => !w.isFutureWeek && !w.isCurrentWeek).length;
   const currentWeek = weeks.find((w) => w.isCurrentWeek);
-  const totalWeeks = 24;
-  const pct = (completedWeeks / totalWeeks) * 100;
+  const totalWeeks = weeks.length;
+  const pct = totalWeeks > 0 ? (completedWeeks / totalWeeks) * 100 : 0;
 
   return (
     <div

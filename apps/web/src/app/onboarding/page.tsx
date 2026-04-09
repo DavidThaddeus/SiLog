@@ -88,6 +88,19 @@ export default function OnboardingPage() {
       siwes_duration_months: data.siwesDuration ?? 6,
     }).eq("id", user.id).then(() => {});
 
+    // Fire welcome email — best effort, never blocks onboarding
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      fetch("/api/send-welcome", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ fullName: data.fullName ?? "", email: user.email }),
+      }).catch(() => {});
+    }
+
     router.push("/dashboard");
   };
 

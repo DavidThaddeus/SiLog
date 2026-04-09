@@ -458,7 +458,7 @@ export default function NotesPage({
           <div style={{ fontSize: 12, color: "var(--muted)", display: "flex", alignItems: "center", gap: 10 }}>
             <span>{formatDateLong(day.date)}</span>
             <span>·</span>
-            <span>Week {week.weekNumber} of 24</span>
+            <span>Week {week.weekNumber} of {weeks.length}</span>
             <span>·</span>
             <StatusBadge status={day.status} />
           </div>
