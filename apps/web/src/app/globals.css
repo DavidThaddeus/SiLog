@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* Wire Tailwind's dark: prefix to our data-theme attribute */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+
+  --color-brown: #8C5A3C;
+  --color-dark: #4B2E2B;
+  --color-brown-light: #B8805F;
+  --color-brown-faint: #F5EDE7;
+  --color-brown-faint-dark: #1A0E0A;
+  --color-muted: #6B4C3B;
+  --color-surface: #FAF6F3;
+  --color-surface-dark: #0F0806;
+}
+
+:root {
+  --bg: #ffffff;
+  --text: #1A0E0A;
+  --surface: #FAF6F3;
+  --card: #ffffff;
+  --input-bg: #ffffff;
+  --border: rgba(140,90,60,0.15);
+  --shadow: rgba(75,46,43,0.08);
+  --brown-faint-var: #F5EDE7;
+  --text-secondary: #4B2E2B;
+  --text-muted: #6B4C3B;
+  --btn-primary: #4B2E2B;
+  --btn-primary-hover: #3A2220;
+  --btn-disabled: #D1D5DB;
+}
+
+[data-theme="dark"] {
+  --bg: #0A0604;
+  --text: #F0E6DF;
+  --surface: #0F0806;
+  --card: #1C1008;
+  --input-bg: #160C06;
+  --border: rgba(140,90,60,0.25);
+  --shadow: rgba(0,0,0,0.4);
+  --brown-faint-var: #1A0E0A;
+  --text-secondary: #D4A882;
+  --text-muted: #A07858;
+  --btn-primary: #8C5A3C;
+  --btn-primary-hover: #A06840;
+  --btn-disabled: #3A2520;
+}
+
+* { box-sizing: border-box; }
+
+/* Base text color — ensures all text inherits theme color, not browser default black */
+body {
+  color: var(--text);
+  background: var(--bg);
+  overflow-x: hidden; /* prevent horizontal scroll/clipping on all pages */
+}
+
+/* Placeholder text adapts to theme */
+::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Responsive page utilities ────────────────────────────────────────────── */
+
+/* Responsive page padding: 16px mobile → 24px tablet → 40px desktop */
+.page-pad { padding: 20px 16px; }
+@media (min-width: 640px) { .page-pad { padding: 28px 24px; } }
+@media (min-width: 1024px) { .page-pad { padding: 32px 40px; } }
+
+/* Responsive inner card padding */
+.card-pad { padding: 20px 16px 22px; }
+@media (min-width: 640px) { .card-pad { padding: 28px 28px 32px; } }
+
+/* StepBar labels: hide on very small screens, show from 440px */
+.step-label { display: none; }
+@media (min-width: 440px) { .step-label { display: inline; } }
+
+/* Dashboard 2-col grid: 1 col on mobile, side panel on desktop */
+.dashboard-grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+  .dashboard-grid { grid-template-columns: 1fr 280px; }
+}
+
+/* Defense steps callout: 1 col mobile → 3 col tablet+ */
+.steps-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .steps-grid { grid-template-columns: repeat(3, 1fr); }
+}

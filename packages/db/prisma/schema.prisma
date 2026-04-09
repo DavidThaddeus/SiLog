@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum WorkloadLevel {
+  light
+  moderate
+  heavy
+}
+
+enum SubscriptionStatus {
+  free
+  paid
+}
+
+enum DayOfWeek {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+}
+
+enum ContentStream {
+  office_work
+  personal_study
+  activity_bank
+  curriculum
+}
+
+enum EntryStatus {
+  draft
+  confirmed
+  week_locked
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                   String             @id @default(uuid())
+  fullName             String
+  university           String
+  department           String
+  level                String
+  companyName          String
+  industry             String
+  supervisorName       String
+  logbookTemplateId    String?
+  startDate            DateTime           @db.Date
+  attendanceDays       Int                @default(5)
+  workloadLevel        WorkloadLevel      @default(moderate)
+  personalStudyTracks  Json               @default("[]")
+  attendanceDayNames   Json               @default("[]") // e.g. ["Monday","Wednesday","Friday"]
+  subscriptionStatus   SubscriptionStatus @default(free)
+  weeksUnlocked        Int                @default(2)
+
+  // Auth fields (email stored, password managed by Supabase/Clerk)
+  email                String             @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  // Relations
+  logbookTemplate      LogbookTemplate?   @relation(fields: [logbookTemplateId], references: [id])
+  dailyEntries         DailyEntry[]
+  activityBank         ActivityBank[]
+
+  @@map("users")
+}
+
+// ─── DAILY ENTRIES ─────────────────────────────────────────────────────────────
+
+model DailyEntry {
+  id                    String        @id @default(uuid())
+  userId                String
+  entryDate             DateTime      @db.Date
+  weekNumber            Int
+  dayOfWeek             DayOfWeek
+  rawDump               String?       @db.Text
+  extractedActivities   Json          @default("[]")
+  progressChartEntry    String?       // ALL-CAPS short phrase
+  technicalNotesV1      String?       @db.Text // Original AI output — never overwritten
+  technicalNotesCurrent String?       @db.Text // Current version (may be edited)
+  editCount             Int           @default(0)
+  contentStream         ContentStream @default(office_work)
+  deptBridgeUsed        String?       @db.Text
+  status                EntryStatus   @default(draft)
+  submittedAt           DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relations
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions              EntryVersion[]
+
+  @@unique([userId, entryDate])
+  @@map("daily_entries")
+}
+
+// ─── ENTRY VERSION HISTORY ────────────────────────────────────────────────────
+
+model EntryVersion {
+  id              String     @id @default(uuid())
+  entryId         String
+  versionNumber   Int
+  technicalNotes  String     @db.Text
+  rawDump         String?    @db.Text
+  createdAt       DateTime   @default(now())
+
+  entry           DailyEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@map("entry_versions")
+}
+
+// ─── ACTIVITY BANK ────────────────────────────────────────────────────────────
+
+model ActivityBank {
+  id            String    @id @default(uuid())
+  userId        String
+  activityText  String    @db.Text
+  originalDate  DateTime  @db.Date
+  used          Boolean   @default(false)
+  usedOnDate    DateTime? @db.Date
+  expiresAt     DateTime  @db.Date
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_bank")
+}
+
+// ─── LOGBOOK TEMPLATES ────────────────────────────────────────────────────────
+
+model LogbookTemplate {
+  id                    String   @id @default(uuid())
+  universityName        String
+  universityShortName   String?  // e.g. "FUNAAB", "OAU"
+  progressChartStructure Json    // Column names, row labels, field positions
+  technicalNotesStyle   Json    // Heading style, paragraph conventions, tone
+  sampleEntry           String?  @db.Text
+  isCustom              Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  users                 User[]
+
+  @@map("logbook_templates")
+}
