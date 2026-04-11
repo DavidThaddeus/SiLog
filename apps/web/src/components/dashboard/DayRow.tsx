@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { DayEntry, WeekEntry } from "@/types/dashboard";
 import { useDashboardStore } from "@/store/dashboard";
@@ -208,6 +208,15 @@ function InlineEditPanel({
 export function DayRow({ day, week, isFuture }: Props) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 540 : false
+  );
+  useEffect(() => {
+    const check = () => setNarrow(window.innerWidth < 540);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const muted = isFuture || day.status === "non-working";
 
   const openNotesPage = () => {
@@ -226,15 +235,15 @@ export function DayRow({ day, week, isFuture }: Props) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "76px 100px 1fr auto",
+          gridTemplateColumns: narrow ? "72px 1fr auto" : "76px 100px 1fr auto",
           alignItems: "center",
-          gap: 10,
-          padding: "10px 20px",
+          gap: narrow ? 8 : 10,
+          padding: narrow ? "10px 12px" : "10px 20px",
           background: day.status === "empty" && !isFuture ? "rgba(140,90,60,0.02)" : "transparent",
         }}
       >
         {/* Date */}
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text)" }}>
             {formatDate(day.date)}
           </div>
@@ -251,10 +260,12 @@ export function DayRow({ day, week, isFuture }: Props) {
           </div>
         </div>
 
-        {/* Status */}
-        <div>
-          <StatusBadge status={day.status} />
-        </div>
+        {/* Status — hidden on narrow screens */}
+        {!narrow && (
+          <div>
+            <StatusBadge status={day.status} />
+          </div>
+        )}
 
         {/* Key activities */}
         <div style={{ minWidth: 0 }}>
@@ -291,17 +302,18 @@ export function DayRow({ day, week, isFuture }: Props) {
               <button
                 onClick={() => router.push(`/entry?week=${week.weekNumber}&date=${day.date}`)}
                 style={{
-                  padding: "5px 14px",
+                  padding: "5px 12px",
                   borderRadius: 8,
-                  background: day.status === "non-working" ? "transparent" : "var(--btn-primary)",
-                  color: day.status === "non-working" ? "#8C5A3C" : "white",
-                  border: day.status === "non-working" ? "1px dashed rgba(140,90,60,0.5)" : "none",
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  background: day.status === "non-working" ? "transparent" : "var(--btn-primary)",
+                  color: day.status === "non-working" ? "#8C5A3C" : "white",
+                  border: day.status === "non-working" ? "1px dashed rgba(140,90,60,0.5)" : "none",
                 }}
               >
-                {day.status === "non-working" ? "+ Log anyway" : "+ Log"}
+                + Log
               </button>
             ) : (
               <>
@@ -319,6 +331,7 @@ export function DayRow({ day, week, isFuture }: Props) {
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   Notes ↗
@@ -335,9 +348,10 @@ export function DayRow({ day, week, isFuture }: Props) {
                     color: editOpen ? "white" : "var(--muted)",
                     cursor: "pointer",
                     fontFamily: "var(--font-dm-mono)",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {editOpen ? "Close" : "Edit"}
+                  {editOpen ? "✕" : "Edit"}
                 </button>
               </>
             )}

@@ -12,6 +12,8 @@ import { useSubscriptionStore } from "@/store/subscription";
 import {
   saveOfflineSnapshot,
   loadOfflineSnapshot,
+  saveLocalData,
+  loadLocalData,
   withTimeout,
 } from "@/lib/offline-cache";
 
@@ -19,6 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [offlineCachedAt, setOfflineCachedAt] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"synced" | "pending" | "failed">("synced");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userIdRef = useRef<string | null>(null);
   const isInitializingRef = useRef(true);
@@ -123,21 +126,46 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Auto-save on store changes (debounced 1.5s)
+    // Auto-save on store changes:
+    // 1. IMMEDIATELY write to localStorage (instant, never fails)
+    // 2. Debounced 1.5s Supabase sync in background
     const unsubscribe = useDashboardStore.subscribe((state) => {
       if (!userIdRef.current) return;
       if (isInitializingRef.current) return; // never save during initial load
+
+      // Always persist locally right away — protects against refresh before Supabase sync
+      saveLocalData(userIdRef.current, state.weeks, state.activityBank);
+      setSyncStatus("pending");
+
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        if (userIdRef.current) {
-          saveUserData(userIdRef.current, state.weeks, state.activityBank);
+      saveTimer.current = setTimeout(async () => {
+        if (!userIdRef.current) return;
+        const { error } = await saveUserData(userIdRef.current, state.weeks, state.activityBank);
+        if (error) {
+          setSyncStatus("failed");
+        } else {
+          setSyncStatus("synced");
         }
       }, 1500);
     });
 
+    // When connection returns, push any locally-saved data that failed to sync
+    const handleOnline = () => {
+      const uid = userIdRef.current;
+      if (!uid) return;
+      const local = loadLocalData(uid);
+      if (!local) return;
+      const { weeks, activityBank } = useDashboardStore.getState();
+      saveUserData(uid, weeks, activityBank).then(({ error }) => {
+        if (!error) setSyncStatus("synced");
+      });
+    };
+    window.addEventListener("online", handleOnline);
+
     return () => {
       subscription.unsubscribe();
       unsubscribe();
+      window.removeEventListener("online", handleOnline);
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,17 +267,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // 2. Load saved weeks + activity bank, or generate fresh from profile
     const totalWeeks = durationMonthsToWeeks(siwesDuration);
     const saved = await loadUserData(userId);
-    if (saved && saved.weeks.length > 0 && saved.weeks.length === totalWeeks) {
-      // Only use saved data if week count matches the user's current duration
-      useDashboardStore.getState().setWeeks(saved.weeks);
-      useDashboardStore.setState({ activityBank: saved.activityBank });
+
+    // Check if there is a newer local snapshot (written on every store change).
+    // This recovers entries created while Supabase sync was failing.
+    const local = loadLocalData(userId);
+    const supabaseTime = saved?.updatedAt ? new Date(saved.updatedAt).getTime() : 0;
+    const localTime = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+    const preferLocal = local && local.weeks.length > 0 && localTime > supabaseTime;
+
+    const weeksSource = preferLocal ? local : saved;
+    const bankSource = preferLocal ? local : saved;
+
+    if (weeksSource && weeksSource.weeks.length > 0 && weeksSource.weeks.length === totalWeeks) {
+      // Use saved data (local-first if newer, otherwise Supabase)
+      useDashboardStore.getState().setWeeks(weeksSource.weeks);
+      useDashboardStore.setState({ activityBank: bankSource!.activityBank });
+
+      // If we used local data that's ahead of Supabase, push it up now
+      if (preferLocal) {
+        saveUserData(userId, local.weeks, local.activityBank).then(() => {
+          setSyncStatus("synced");
+        });
+      }
     } else if (profile.start_date && profile.attendance_days?.length) {
       // Generate fresh weeks — either first login or duration was changed
       useDashboardStore.getState().setWeeks(
         generateWeeksFromProfile(profile.start_date, profile.attendance_days, totalWeeks)
       );
       useDashboardStore.setState({
-        activityBank: saved?.activityBank ?? { items: [], bankedCount: 0, emptyCoverageCount: 0 },
+        activityBank: (bankSource ?? saved)?.activityBank ?? { items: [], bankedCount: 0, emptyCoverageCount: 0 },
       });
     }
 
@@ -313,5 +359,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <AppShell offlineCachedAt={offlineCachedAt}>{children}</AppShell>;
+  return <AppShell offlineCachedAt={offlineCachedAt} syncStatus={syncStatus}>{children}</AppShell>;
 }

@@ -1,6 +1,51 @@
 import type { WeekEntry, ActivityBankState } from "@/types/dashboard";
 
 const CACHE_KEY_PREFIX = "silog_offline_";
+const LOCAL_DATA_PREFIX = "silog_data_";
+
+// ─── Local-first data snapshot (weeks + activityBank only) ──────────────────
+// Written on EVERY Zustand store change so data is never lost on refresh,
+// even when Supabase sync fails.
+
+export interface LocalDataSnapshot {
+  weeks: WeekEntry[];
+  activityBank: ActivityBankState;
+  updatedAt: string; // ISO — timestamp of last local change
+}
+
+export function saveLocalData(
+  userId: string,
+  weeks: WeekEntry[],
+  activityBank: ActivityBankState
+): void {
+  try {
+    const payload: LocalDataSnapshot = {
+      weeks,
+      activityBank,
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(`${LOCAL_DATA_PREFIX}${userId}`, JSON.stringify(payload));
+  } catch {
+    // Storage quota exceeded — silently skip
+  }
+}
+
+export function loadLocalData(userId: string): LocalDataSnapshot | null {
+  try {
+    const raw = localStorage.getItem(`${LOCAL_DATA_PREFIX}${userId}`);
+    return raw ? (JSON.parse(raw) as LocalDataSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLocalData(userId: string): void {
+  try {
+    localStorage.removeItem(`${LOCAL_DATA_PREFIX}${userId}`);
+  } catch {
+    // ignore
+  }
+}
 
 export interface OfflineSnapshot {
   userId: string;

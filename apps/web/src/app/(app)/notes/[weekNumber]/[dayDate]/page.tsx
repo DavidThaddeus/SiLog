@@ -380,6 +380,15 @@ export default function NotesPage({
 
   const [tab, setTab] = useState<Tab>("day");
   const [chatNotes, setChatNotes] = useState("");
+  const [showChat, setShowChat] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false
+  );
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Seed mock data if store is empty
   useEffect(() => {
@@ -417,7 +426,7 @@ export default function NotesPage({
   return (
     <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden" }}>
       {/* Left: notes content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "32px 36px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 16px" : "32px 36px", minWidth: 0 }}>
         {/* Back + breadcrumb */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
           <button
@@ -464,38 +473,57 @@ export default function NotesPage({
           </div>
         </div>
 
-        {/* Tab bar */}
-        <div
-          style={{
-            display: "flex",
-            gap: 2,
-            marginBottom: 24,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: 4,
-            width: "fit-content",
-          }}
-        >
-          {(["day", "week"] as Tab[]).map((t) => (
+        {/* Tab bar + mobile AI toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 2,
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: 4,
+            }}
+          >
+            {(["day", "week"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 7,
+                  border: "none",
+                  background: tab === t ? "var(--btn-primary)" : "transparent",
+                  color: tab === t ? "white" : "var(--muted)",
+                  fontSize: 12,
+                  fontWeight: tab === t ? 600 : 400,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t === "day" ? `${day.dayName} Notes` : "Week Compilation"}
+              </button>
+            ))}
+          </div>
+
+          {/* AI refine button — on mobile shows/hides the chat panel as an overlay */}
+          {isMobile && (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              onClick={() => setShowChat((v) => !v)}
               style={{
-                padding: "6px 20px",
-                borderRadius: 7,
-                border: "none",
-                background: tab === t ? "var(--btn-primary)" : "transparent",
-                color: tab === t ? "white" : "var(--muted)",
-                fontSize: 12,
-                fontWeight: tab === t ? 600 : 400,
-                cursor: "pointer",
-                transition: "all 0.15s",
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 14px", borderRadius: 9,
+                border: `1.5px solid ${showChat ? "#8C5A3C" : "var(--border)"}`,
+                background: showChat ? "rgba(140,90,60,0.08)" : "var(--surface)",
+                color: showChat ? "#8C5A3C" : "var(--muted)",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
-              {t === "day" ? `${day.dayName} Notes` : "Week Compilation"}
+              ✦ AI Refine
             </button>
-          ))}
+          )}
         </div>
 
         {/* Content */}
@@ -509,22 +537,62 @@ export default function NotesPage({
         )}
       </div>
 
-      {/* Right: AI chat panel */}
-      <div
-        style={{
-          width: 340,
-          padding: "32px 20px 32px 0",
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <AIChatPanel
-          currentNotes={chatNotes}
-          dayName={day.dayName}
-          onApplySuggestion={handleApplySuggestion}
-        />
-      </div>
+      {/* Right: AI chat panel — side panel on desktop, slide-up overlay on mobile */}
+      {isMobile ? (
+        showChat && (
+          <>
+            {/* Backdrop */}
+            <div
+              onClick={() => setShowChat(false)}
+              style={{
+                position: "fixed", inset: 0, zIndex: 40,
+                background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)",
+              }}
+            />
+            {/* Bottom sheet */}
+            <div
+              style={{
+                position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+                height: "70vh",
+                background: "var(--bg)",
+                borderTop: "1px solid var(--border)",
+                borderRadius: "16px 16px 0 0",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {/* Handle bar */}
+              <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 4px" }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border)" }} />
+              </div>
+              <div style={{ flex: 1, padding: "0 16px 16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <AIChatPanel
+                  currentNotes={chatNotes}
+                  dayName={day.dayName}
+                  onApplySuggestion={handleApplySuggestion}
+                />
+              </div>
+            </div>
+          </>
+        )
+      ) : (
+        <div
+          style={{
+            width: 340,
+            padding: "32px 20px 32px 0",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <AIChatPanel
+            currentNotes={chatNotes}
+            dayName={day.dayName}
+            onApplySuggestion={handleApplySuggestion}
+          />
+        </div>
+      )}
     </div>
   );
 }

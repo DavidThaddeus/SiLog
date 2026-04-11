@@ -10,7 +10,11 @@ import { useSubscriptionStore, FREE_GENERATION_LIMIT } from "@/store/subscriptio
 import { useOnboardingStore } from "@/store/onboarding";
 import { supabase } from "@/lib/supabase";
 
-export function AppShell({ children, offlineCachedAt }: { children: React.ReactNode; offlineCachedAt?: string | null }) {
+export function AppShell({ children, offlineCachedAt, syncStatus }: {
+  children: React.ReactNode;
+  offlineCachedAt?: string | null;
+  syncStatus?: "synced" | "pending" | "failed";
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -61,7 +65,7 @@ export function AppShell({ children, offlineCachedAt }: { children: React.ReactN
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
 
       {/* Mobile overlay backdrop */}
       {mobileOpen && (
@@ -74,6 +78,7 @@ export function AppShell({ children, offlineCachedAt }: { children: React.ReactN
         />
       )}
 
+      {/* Sidebar is always position:fixed — never affects page flow */}
       <AppSidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
@@ -81,21 +86,24 @@ export function AppShell({ children, offlineCachedAt }: { children: React.ReactN
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      <div
-        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}
-        className={collapsed ? "lg:ml-[68px]" : "lg:ml-[260px]"}
-      >
+      {/* Page column: shifts right on desktop to clear the fixed sidebar */}
+      <div className={collapsed ? "lg:pl-[68px]" : "lg:pl-[260px]"}>
         <AppTopbar
           onToggleSidebar={() => setCollapsed((c) => !c)}
           onMobileMenuOpen={() => setMobileOpen(true)}
           collapsed={collapsed}
           mobileOpen={mobileOpen}
+          syncStatus={syncStatus}
         />
 
-        <main style={{ flex: 1, background: "var(--surface)", overflowY: "auto", paddingTop: offlineCachedAt ? 92 : 56 }}>
-          {/* Offline cache banner */}
+        {/* Plain block — window scrolls, no height traps, works on every phone/browser */}
+        <main style={{
+          background: "var(--surface)",
+          overflowX: "hidden",
+          paddingTop: offlineCachedAt ? 92 : 56,
+          paddingBottom: 48,
+        }}>
           {offlineCachedAt && <OfflineBanner cachedAt={offlineCachedAt} />}
-          {/* Trial / generation banner */}
           {inTrial && (
             <TrialBanner
               generationsUsed={generationsUsed}

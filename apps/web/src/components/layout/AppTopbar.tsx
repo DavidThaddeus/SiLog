@@ -19,9 +19,10 @@ interface Props {
   onMobileMenuOpen: () => void;
   collapsed: boolean;
   mobileOpen: boolean;
+  syncStatus?: "synced" | "pending" | "failed";
 }
 
-export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobileOpen }: Props) {
+export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobileOpen, syncStatus }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useDashboardStore();
@@ -160,6 +161,36 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
             ? isFullyPaid ? "PAID · FULL" : "PAID · MONTHLY"
             : `FREE · ${generationsLeft}/5`}
         </button>
+
+        {/* Sync status indicator — only show when not synced */}
+        {syncStatus === "pending" && (
+          <div title="Saving…" style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 11, color: "var(--muted)",
+            fontFamily: "var(--font-dm-mono)",
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: "50%",
+              background: "#f59e0b",
+              boxShadow: "0 0 0 2px rgba(245,158,11,0.2)",
+            }} />
+            <span className="hidden sm:inline">Saving…</span>
+          </div>
+        )}
+        {syncStatus === "failed" && (
+          <div title="Saved locally — will sync when connection returns" style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 11, color: "#b45309",
+            fontFamily: "var(--font-dm-mono)",
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: "50%",
+              background: "#f59e0b",
+              boxShadow: "0 0 0 2px rgba(245,158,11,0.25)",
+            }} />
+            <span className="hidden sm:inline">Saved locally</span>
+          </div>
+        )}
 
         {/* Theme toggle */}
         <button

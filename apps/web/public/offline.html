@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiLog - Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #4B2E2B 0%, #8C5A3C 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      max-width: 380px;
+      width: 100%;
+    }
+    .icon { font-size: 56px; margin-bottom: 20px; }
+    h1 { color: #1A0E0A; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    p { color: #6B4C3B; font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+    .brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #8C5A3C;
+      margin-bottom: 20px;
+    }
+    .button {
+      background: #4B2E2B;
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .button:hover { background: #3A2220; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <div class="brand">SiLog</div>
+    <h1>You're Offline</h1>
+    <p>Your logbook data is saved locally. Reconnect to sync new entries and use the AI assistant.</p>
+    <button class="button" onclick="location.reload()">Try Again</button>
+  </div>
+  <script>
+    window.addEventListener('online', () => location.reload());
+  </script>
+</body>
+</html>

@@ -25,7 +25,7 @@ export default function DashboardPage() {
   }, [weeks.length]); // only runs once after weeks are loaded/returned to page
 
   return (
-    <div className="px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-8" style={{ maxWidth: 1100 }}>
+    <div className="px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-8" style={{ maxWidth: 1100, width: "100%", margin: "0 auto" }}>
 
       {/* Defense prep CTA */}
       <div
@@ -79,8 +79,8 @@ export default function DashboardPage() {
 
       {/* Two-column layout: week list + right rail */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
-        {/* Left: progress + week cards */}
-        <div>
+        {/* Left: progress + week cards — on mobile, pushed below the right rail via order */}
+        <div className="lg:order-1 order-2">
           <ProgressHeader />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -90,8 +90,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right rail — sticky on desktop, normal flow on mobile */}
-        <div className="lg:sticky lg:top-[72px]" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Right rail — on mobile appears FIRST (order-1), on desktop sticky sidebar */}
+        <div className="lg:order-2 order-1 lg:sticky lg:top-[72px]" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <ActivityBankWidget />
 
           {/* Quick stats */}

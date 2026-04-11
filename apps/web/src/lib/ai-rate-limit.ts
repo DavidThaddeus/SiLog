@@ -3,30 +3,37 @@ import { NextResponse } from "next/server";
 
 /**
  * Daily AI call limits.
- * Free users: 5 lifetime (enforced separately) + max 3/day within those 5.
- * Paid users: 20 calls/day, resets at midnight UTC.
+ * Free users: 3 calls/day.
+ * Paid users: 5 calls/day.
+ * Day boundary: resets at 01:00 UTC (= 02:00 WAT for Nigerian students).
  */
-export const DAILY_LIMIT_PAID = 20;
+export const DAILY_LIMIT_PAID = 5;
 export const DAILY_LIMIT_FREE = 3;
 
-type RateLimitResult =
-  | { blocked: false; callsToday: number }
+/**
+ * Returns the current "day key" (YYYY-MM-DD) where the day boundary is 01:00 UTC.
+ * Before 01:00 UTC, we're still in the previous calendar day's period.
+ */
+function getDayKey(): string {
+  const now = new Date();
+  // Shift back by 1 hour so the period boundary sits at 01:00 UTC
+  const adjusted = new Date(now.getTime() - 60 * 60 * 1000);
+  return adjusted.toISOString().split("T")[0];
+}
+
+type CheckResult =
+  | { blocked: false; callsToday: number; isPaid: boolean }
   | { blocked: true; response: NextResponse };
 
 /**
- * Check + increment the daily AI call counter for a user.
- * Uses the admin client (service role) so it bypasses RLS.
- * Returns { blocked: false } if OK, or { blocked: true, response } to return immediately.
+ * Read the user's daily call count and subscription status.
+ * Does NOT increment. Call incrementDailyLimit() separately after all checks pass.
  */
-export async function checkAndIncrementDailyLimit(
+export async function checkDailyLimit(
   userId: string,
   adminClient: SupabaseClient
-): Promise<RateLimitResult> {
-  const todayUTC = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-
-  // Load just the rate-limit columns — best-effort, won't block if column missing
-  let callsToday = 0;
-  let isPaid = false;
+): Promise<CheckResult> {
+  const dayKey = getDayKey();
 
   try {
     const { data } = await adminClient
@@ -35,45 +42,51 @@ export async function checkAndIncrementDailyLimit(
       .eq("id", userId)
       .maybeSingle();
 
-    isPaid = data?.subscription_status === "paid";
-    // Reset counter if it's a new day
-    callsToday = data?.ai_calls_date === todayUTC ? (data?.ai_calls_today ?? 0) : 0;
+    const isPaid = data?.subscription_status === "paid";
+    const callsToday = data?.ai_calls_date === dayKey ? (data?.ai_calls_today ?? 0) : 0;
+    const limit = isPaid ? DAILY_LIMIT_PAID : DAILY_LIMIT_FREE;
+
+    if (callsToday >= limit) {
+      return {
+        blocked: true,
+        response: NextResponse.json(
+          {
+            error: "daily_limit_reached",
+            message: isPaid
+              ? `You've used all ${DAILY_LIMIT_PAID} AI calls for today. Resets at 1:00 AM UTC.`
+              : `Free plan allows ${DAILY_LIMIT_FREE} AI calls per day. Come back tomorrow or upgrade.`,
+            limit,
+            callsToday,
+          },
+          { status: 429 }
+        ),
+      };
+    }
+
+    return { blocked: false, callsToday, isPaid };
   } catch {
     // Column may not exist yet — allow the call through
-    return { blocked: false, callsToday: 0 };
+    return { blocked: false, callsToday: 0, isPaid: false };
   }
+}
 
-  const limit = isPaid ? DAILY_LIMIT_PAID : DAILY_LIMIT_FREE;
-
-  if (callsToday >= limit) {
-    return {
-      blocked: true,
-      response: NextResponse.json(
-        {
-          error: "daily_limit_reached",
-          message: isPaid
-            ? `You've reached the daily limit of ${DAILY_LIMIT_PAID} AI calls. Resets at midnight UTC.`
-            : `Free plan allows ${DAILY_LIMIT_FREE} AI calls per day. Upgrade for more.`,
-          limit,
-          callsToday,
-          resetsAt: `${todayUTC}T24:00:00Z`,
-        },
-        { status: 429 }
-      ),
-    };
-  }
-
-  // Increment counter
+/**
+ * Increment the daily call counter. Call this only after all checks pass.
+ */
+export async function incrementDailyLimit(
+  userId: string,
+  adminClient: SupabaseClient,
+  currentCallsToday: number
+): Promise<void> {
+  const dayKey = getDayKey();
   try {
     await adminClient
       .from("profiles")
-      .update({ ai_calls_today: callsToday + 1, ai_calls_date: todayUTC })
+      .update({ ai_calls_today: currentCallsToday + 1, ai_calls_date: dayKey })
       .eq("id", userId);
   } catch {
     // Best-effort — don't block the call if update fails
   }
-
-  return { blocked: false, callsToday: callsToday + 1 };
 }
 
 /** Create the admin Supabase client (service role — bypasses RLS) */

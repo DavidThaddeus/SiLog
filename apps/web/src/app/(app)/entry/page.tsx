@@ -794,6 +794,7 @@ function EntryPageInner() {
   // Step 4 state
   const [generated, setGenerated] = useState<GenerateEntryResponse | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   // Step 5 state
   const [saving, setSaving] = useState(false);
@@ -831,6 +832,7 @@ function EntryPageInner() {
   const callGenerate = async (forToday: string[], refineInstruction?: string) => {
     setGenerating(true);
     setGenerated(null);
+    setGenerateError(null);
 
     const activitiesText = forToday.length > 0
       ? forToday.join("\n")
@@ -872,16 +874,45 @@ function EntryPageInner() {
         body: JSON.stringify(body),
       });
       if (res.status === 402) {
-        // Free limit reached — server rejected the generation
+        // Lifetime free limit exhausted
         useSubscriptionStore.getState().setGenerationsUsed(FREE_GENERATION_LIMIT);
+        setGenerateError("You've used all 5 free AI entries. Upgrade your plan to keep generating logbook entries.");
+        setGenerating(false);
+        return;
+      }
+      if (res.status === 429) {
+        // Daily limit reached — read the server message which includes the exact numbers
+        try {
+          const errData = await res.json();
+          setGenerateError(errData?.message ?? "You've reached today's AI generation limit. Come back tomorrow.");
+        } catch {
+          setGenerateError("You've reached today's AI generation limit. Come back tomorrow.");
+        }
+        setGenerating(false);
+        return;
+      }
+      if (!res.ok) {
+        try {
+          const errData = await res.json();
+          setGenerateError(errData?.error ?? "Something went wrong generating your entry. Please try again.");
+        } catch {
+          setGenerateError("Something went wrong generating your entry. Please try again.");
+        }
         setGenerating(false);
         return;
       }
       const data: GenerateEntryResponse = await res.json();
+      // Guard: only set if response has the expected shape
+      if (!data || !Array.isArray(data.keyActivities)) {
+        setGenerating(false);
+        return;
+      }
       setGenerated(data);
-      // Sync generation count — increment locally to match server increment
-      const current = useSubscriptionStore.getState().generationsUsed;
-      useSubscriptionStore.getState().setGenerationsUsed(current + 1);
+      // Sync generation count from server — covers both generate and refine
+      const serverCount = (data as GenerateEntryResponse & { _generationsUsed?: number })._generationsUsed;
+      if (typeof serverCount === "number") {
+        useSubscriptionStore.getState().setGenerationsUsed(serverCount);
+      }
     } catch {
       // noop, spinner stays
     } finally {
@@ -992,13 +1023,20 @@ function EntryPageInner() {
           )}
 
           {step === 4 && selectedDay && selectedWeek && (
-            <Step4Preview
-              day={selectedDay} week={selectedWeek}
-              generated={generated} loading={generating}
-              onSave={handleSave}
-              onRefine={(instr) => callGenerate(selectedForToday, instr)}
-              onBack={() => setStep(3)}
-            />
+            <>
+              {generateError && (
+                <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", fontSize: 13, color: "#DC2626" }}>
+                  {generateError}
+                </div>
+              )}
+              <Step4Preview
+                day={selectedDay} week={selectedWeek}
+                generated={generated} loading={generating}
+                onSave={handleSave}
+                onRefine={(instr) => callGenerate(selectedForToday, instr)}
+                onBack={() => setStep(3)}
+              />
+            </>
           )}
 
           {step === 5 && liveDay && selectedWeek && (

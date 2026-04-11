@@ -4,10 +4,11 @@ import type { WeekEntry, ActivityBankState } from "@/types/dashboard";
 export async function loadUserData(userId: string): Promise<{
   weeks: WeekEntry[];
   activityBank: ActivityBankState;
+  updatedAt: string | null;
 } | null> {
   const { data, error } = await supabase
     .from("user_data")
-    .select("weeks, activity_bank")
+    .select("weeks, activity_bank, updated_at")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -16,6 +17,7 @@ export async function loadUserData(userId: string): Promise<{
   return {
     weeks: data.weeks ?? [],
     activityBank: data.activity_bank ?? { items: [], bankedCount: 0, emptyCoverageCount: 0 },
+    updatedAt: data.updated_at ?? null,
   };
 }
 

@@ -360,7 +360,7 @@ export default function ActivityBankPage() {
 
         {/* Stats row */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28,
+          display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12, marginBottom: 28,
         }}>
           {[
             {

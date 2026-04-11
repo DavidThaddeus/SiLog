@@ -197,7 +197,7 @@ export default function PricingPage() {
         border: "2px solid #8C5A3C",
         background: "rgba(140,90,60,0.05)",
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Monthly Plan</div>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.5 }}>

@@ -532,7 +532,7 @@ export default function DefensePage() {
       : 0;
 
   return (
-    <div style={{ padding: "32px 40px", maxWidth: 760, margin: "0 auto" }}>
+    <div className="page-pad" style={{ maxWidth: 760, margin: "0 auto" }}>
       {/* Score header */}
       <div style={{ display: "flex", alignItems: "center", gap: 28, marginBottom: 36, flexWrap: "wrap" }}>
         <ScoreRing score={overallScore} />

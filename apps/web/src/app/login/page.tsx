@@ -144,7 +144,24 @@ export default function LoginPage() {
     setLoading(true);
 
     if (mode === "signup") {
-      // Send OTP via Resend — never touches Supabase email
+      // Check if email already has an account before sending OTP
+      try {
+        const checkRes = await fetch("/api/auth/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const checkData = await checkRes.json();
+        if (checkData.exists) {
+          setError("An account with this email already exists. Sign in instead.");
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Network error on check — proceed anyway, verify-otp will catch it
+      }
+
+      // Send OTP via Gmail/Resend — never touches Supabase email
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

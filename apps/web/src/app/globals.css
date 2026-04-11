@@ -95,6 +95,7 @@ body {
   .dashboard-grid { grid-template-columns: 1fr 280px; }
 }
 
+
 /* Defense steps callout: 1 col mobile → 3 col tablet+ */
 .steps-grid {
   display: grid;
