@@ -61,9 +61,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Daily rate limit ─────────────────────────────────────────────────────────
-  const { makeAdminClient, checkAndIncrementDailyLimit } = await import("@/lib/ai-rate-limit");
-  const rateLimit = await checkAndIncrementDailyLimit((auth as { user: { id: string } }).user.id, makeAdminClient());
+  const { makeAdminClient, checkDailyLimit, incrementDailyLimit } = await import("@/lib/ai-rate-limit");
+  const adminClient = makeAdminClient();
+  const userId = (auth as { user: { id: string } }).user.id;
+  const rateLimit = await checkDailyLimit(userId, adminClient);
   if (rateLimit.blocked) return rateLimit.response;
+  await incrementDailyLimit(userId, adminClient, (rateLimit as { callsToday: number }).callsToday);
 
   const weekContext = days
     .map((d: { dayName: string; progressChartEntry: string; keyActivities: string[]; technicalNotes: string; deptBridgeUsed: string }) =>
