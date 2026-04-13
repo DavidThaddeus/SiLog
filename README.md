@@ -26,3 +26,5 @@ MIT
 ## Author
 
 David Thaddeus — [GitHub](https://github.com/DavidThaddeus)
+
+Social: [X](https://x.com/TDavelife)
