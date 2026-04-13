@@ -10,6 +10,46 @@ import type { DayEntry, WeekEntry } from "@/types/dashboard";
 
 type Tab = "day" | "week";
 
+function NotesText({ text }: { text: string }) {
+  const diagIdx = text.search(/DIAGRAM SUGGESTION:/i);
+  const mainText = diagIdx !== -1 ? text.slice(0, diagIdx).trimEnd() : text;
+  const diagText = diagIdx !== -1 ? text.slice(diagIdx) : null;
+  return (
+    <>
+      {mainText}
+      {diagText && (
+        <div
+          style={{
+            marginTop: 14,
+            padding: "10px 14px",
+            borderRadius: 8,
+            border: "1.5px dashed rgba(140,90,60,0.4)",
+            background: "rgba(140,90,60,0.05)",
+            fontSize: 12,
+            lineHeight: 1.6,
+          }}
+        >
+          <span
+            style={{
+              display: "block",
+              fontFamily: "var(--font-dm-mono)",
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#8C5A3C",
+              marginBottom: 4,
+            }}
+          >
+            ✏ Diagram Suggestion
+          </span>
+          {diagText.replace(/^DIAGRAM SUGGESTION:\s*/i, "")}
+        </div>
+      )}
+    </>
+  );
+}
+
 function formatDateLong(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -213,7 +253,7 @@ function DayView({ day, onNotesChange }: { day: DayEntry; onNotesChange: (t: str
             border: "1px solid var(--border)",
           }}
         >
-          {day.technicalNotesCurrent ?? day.technicalNotes ?? "No notes generated yet."}
+          <NotesText text={day.technicalNotesCurrent ?? day.technicalNotes ?? "No notes generated yet."} />
         </div>
       )}
     </div>
@@ -360,7 +400,7 @@ function WeekCompilationView({ week }: { week: WeekEntry }) {
               border: "1px solid var(--border)",
             }}
           >
-            {day.technicalNotesCurrent ?? day.technicalNotes}
+            <NotesText text={day.technicalNotesCurrent ?? day.technicalNotes ?? ""} />
           </div>
         </div>
       ))}

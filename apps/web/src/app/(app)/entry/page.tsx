@@ -631,9 +631,35 @@ function Step4Preview({ day, week, generated, loading, onSave, onRefine, onBack 
         <div style={{ fontSize: 9, fontFamily: "var(--font-dm-mono)", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8C5A3C", marginBottom: 10 }}>
           Technical Notes
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text)", whiteSpace: "pre-line" }}>
-          {generated.technicalNotes}
-        </div>
+        {(() => {
+          const diagIdx = generated.technicalNotes.search(/DIAGRAM SUGGESTION:/i);
+          const mainText = diagIdx !== -1 ? generated.technicalNotes.slice(0, diagIdx).trimEnd() : generated.technicalNotes;
+          const diagText = diagIdx !== -1 ? generated.technicalNotes.slice(diagIdx) : null;
+          return (
+            <>
+              <div style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text)", whiteSpace: "pre-line" }}>
+                {mainText}
+              </div>
+              {diagText && (
+                <div style={{
+                  marginTop: 14,
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  border: "1.5px dashed rgba(140,90,60,0.4)",
+                  background: "rgba(140,90,60,0.05)",
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                  color: "var(--text-muted)",
+                }}>
+                  <span style={{ display: "block", fontFamily: "var(--font-dm-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8C5A3C", marginBottom: 4 }}>
+                    ✏ Diagram Suggestion
+                  </span>
+                  {diagText.replace(/^DIAGRAM SUGGESTION:\s*/i, "")}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Academic bridge */}
