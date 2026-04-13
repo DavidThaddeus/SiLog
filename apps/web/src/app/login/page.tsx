@@ -216,6 +216,7 @@ export default function LoginPage() {
             alt="SiLog logo"
             width={68}
             height={68}
+            priority
             style={{ flexShrink: 0, objectFit: "contain" }}
           />
           <div>

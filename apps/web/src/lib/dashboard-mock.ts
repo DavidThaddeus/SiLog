@@ -22,7 +22,9 @@ function mondayOf(d: Date): Date {
   return addDays(d, diff);
 }
 
+// today is used only by mock data generators below — never for real user data.
 const today = new Date();
+today.setHours(0, 0, 0, 0);
 const SIWES_START = addDays(mondayOf(today), -7 * 7);
 
 // ─── FULL TECHNICAL NOTES ─────────────────────────────────────────────────────
@@ -195,6 +197,23 @@ function makeDay(
 // ─── REAL WEEKS GENERATOR (from user profile) ─────────────────────────────────
 // Used for real users. Generates empty weeks from their actual start date and
 // attendance days — no mock data, no pre-filled entries.
+
+/**
+ * Recalculate isCurrentWeek and isFutureWeek on every week in a saved array.
+ * Call this every time saved weeks are loaded from Supabase or localStorage so
+ * the flags always reflect today's real date, not the date the data was generated.
+ */
+export function recalcWeekFlags(weeks: WeekEntry[]): WeekEntry[] {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const currentWeekStart = toISO(mondayOf(now));
+
+  return weeks.map((w) => ({
+    ...w,
+    isCurrentWeek: w.startDate === currentWeekStart,
+    isFutureWeek: w.startDate > currentWeekStart,
+  }));
+}
 
 /** Convert SIWES duration in months to the number of logbook weeks. */
 export function durationMonthsToWeeks(months: 3 | 6 | 12 | number): number {

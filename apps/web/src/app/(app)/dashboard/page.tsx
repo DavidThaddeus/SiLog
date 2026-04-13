@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardStore } from "@/store/dashboard";
 import { ProgressHeader } from "@/components/dashboard/ProgressHeader";
@@ -13,6 +13,18 @@ export default function DashboardPage() {
   const { weeks, expandedWeekNumber } = useDashboardStore();
 
   useInitWeeks();
+
+  // Single pass over all days — avoids 3× flatMap/filter in render
+  const stats = useMemo(() => {
+    let total = 0, aiGenerated = 0, manuallyEdited = 0;
+    for (const w of weeks) {
+      for (const d of w.days) {
+        if (d.status === "auto-filled") { total++; aiGenerated++; }
+        else if (d.status === "manually-edited") { total++; manuallyEdited++; }
+      }
+    }
+    return { total, aiGenerated, manuallyEdited };
+  }, [weeks]);
 
   // Restore scroll position to the last-viewed week when returning from notes/entry
   useEffect(() => {
@@ -124,22 +136,9 @@ export default function DashboardPage() {
             </div>
             <div style={{ padding: "14px 18px" }}>
               {[
-                {
-                  label: "Total entries",
-                  value: weeks.flatMap((w) => w.days).filter((d) => d.status !== "empty" && d.status !== "non-working").length,
-                },
-                {
-                  label: "AI-generated",
-                  value: weeks
-                    .flatMap((w) => w.days)
-                    .filter((d) => d.status === "auto-filled").length,
-                },
-                {
-                  label: "Manually edited",
-                  value: weeks
-                    .flatMap((w) => w.days)
-                    .filter((d) => d.status === "manually-edited").length,
-                },
+                { label: "Total entries",   value: stats.total },
+                { label: "AI-generated",    value: stats.aiGenerated },
+                { label: "Manually edited", value: stats.manuallyEdited },
               ].map(({ label, value }) => (
                 <div
                   key={label}

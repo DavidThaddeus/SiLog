@@ -1,6 +1,6 @@
 "use client";
 
-
+import React from "react";
 import type { WeekEntry } from "@/types/dashboard";
 import { useDashboardStore } from "@/store/dashboard";
 import { DayRow } from "./DayRow";
@@ -15,7 +15,7 @@ function fmtDate(iso: string): string {
 }
 
 
-export function WeekCard({ week }: Props) {
+function WeekCardInner({ week }: Props) {
   const { expandedWeekNumber, toggleWeek } = useDashboardStore();
   const isOpen = expandedWeekNumber === week.weekNumber;
   const completionPct =
@@ -201,3 +201,5 @@ export function WeekCard({ week }: Props) {
     </div>
   );
 }
+
+export const WeekCard = React.memo(WeekCardInner);

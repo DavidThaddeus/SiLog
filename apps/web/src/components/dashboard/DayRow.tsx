@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { DayEntry, WeekEntry } from "@/types/dashboard";
 import { useDashboardStore } from "@/store/dashboard";
@@ -205,7 +205,7 @@ function InlineEditPanel({
   );
 }
 
-export function DayRow({ day, week, isFuture }: Props) {
+function DayRowInner({ day, week, isFuture }: Props) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [narrow, setNarrow] = useState(() =>
@@ -366,3 +366,5 @@ export function DayRow({ day, week, isFuture }: Props) {
     </div>
   );
 }
+
+export const DayRow = React.memo(DayRowInner);

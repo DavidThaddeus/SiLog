@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { loadUserData, saveUserData } from "@/lib/db";
 import { useDashboardStore } from "@/store/dashboard";
 import { useOnboardingStore } from "@/store/onboarding";
-import { generateWeeksFromProfile, durationMonthsToWeeks } from "@/lib/dashboard-mock";
+import { generateWeeksFromProfile, durationMonthsToWeeks, recalcWeekFlags } from "@/lib/dashboard-mock";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSubscriptionStore } from "@/store/subscription";
 import {
@@ -55,9 +55,53 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         },
       });
 
+      // ── Local-first: show app immediately if we have cached data ────────────
+      const localSnap = loadLocalData(session.user.id);
+      const offlineSnap = loadOfflineSnapshot(session.user.id);
+      const hasLocalWeeks = localSnap && localSnap.weeks.length > 0;
+
+      if (hasLocalWeeks && offlineSnap) {
+        // Populate stores from offline snapshot (profile + subscription)
+        useOnboardingStore.setState({
+          data: {
+            fullName: offlineSnap.profile.full_name ?? "",
+            department: offlineSnap.profile.department ?? "",
+            university: offlineSnap.profile.university ?? "",
+            companyName: offlineSnap.profile.company_name ?? "",
+            companyDepartment: offlineSnap.profile.company_dept ?? "",
+            industry: offlineSnap.profile.industry ?? "",
+            startDate: offlineSnap.profile.start_date ?? "",
+            siwesDuration: (offlineSnap.siwesDuration ?? 6) as 3 | 6 | 12,
+            attendanceDayNames: offlineSnap.profile.attendance_days ?? [],
+            hasPersonalStudy: offlineSnap.profile.has_personal_study ?? false,
+            studyLogbookFraming: (offlineSnap.profile.study_framing as "assigned" | "research" | null) ?? null,
+          },
+        });
+
+        useSubscriptionStore.getState().setSubscription(
+          offlineSnap.subscription.status,
+          offlineSnap.subscription.expiresAt,
+          offlineSnap.subscription.generationsUsed,
+          offlineSnap.subscription.isFullPayment,
+          offlineSnap.subscription.subscribedAt
+        );
+
+        useDashboardStore.getState().setWeeks(recalcWeekFlags(localSnap.weeks));
+        useDashboardStore.setState({ activityBank: localSnap.activityBank });
+
+        // Show the app immediately
+        isInitializingRef.current = false;
+        setReady(true);
+
+        // Background refresh from Supabase — pass a flag so fetchAndPopulate
+        // skips setReady(true) and router redirects (app is already showing)
+        fetchAndPopulate(session.user.id, router, true).catch(() => {});
+        return;
+      }
+
       // ── Main data fetch (wrapped in timeout for offline detection) ──────────
       try {
-        await withTimeout(fetchAndPopulate(session.user.id, router), 10_000);
+        await withTimeout(fetchAndPopulate(session.user.id, router), 6_000);
         // fetchAndPopulate calls setReady(true) internally on success
       } catch {
         // Supabase unreachable or timed out — try offline cache
@@ -94,7 +138,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         );
 
         if (snap.weeks.length > 0) {
-          useDashboardStore.getState().setWeeks(snap.weeks);
+          useDashboardStore.getState().setWeeks(recalcWeekFlags(snap.weeks));
           useDashboardStore.setState({ activityBank: snap.activityBank });
         }
 
@@ -129,24 +173,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // Auto-save on store changes:
     // 1. IMMEDIATELY write to localStorage (instant, never fails)
     // 2. Debounced 1.5s Supabase sync in background
+    // Only save when weeks or activityBank actually change — ignore theme/expandedWeek/UI state
+    let lastWeeksRef = useDashboardStore.getState().weeks;
+    let lastBankRef = useDashboardStore.getState().activityBank;
+
     const unsubscribe = useDashboardStore.subscribe((state) => {
       if (!userIdRef.current) return;
-      if (isInitializingRef.current) return; // never save during initial load
+      if (isInitializingRef.current) return;
 
-      // Always persist locally right away — protects against refresh before Supabase sync
-      saveLocalData(userIdRef.current, state.weeks, state.activityBank);
-      setSyncStatus("pending");
+      // Skip if only UI state changed (theme toggle, collapse, etc.)
+      if (state.weeks === lastWeeksRef && state.activityBank === lastBankRef) return;
+      lastWeeksRef = state.weeks;
+      lastBankRef = state.activityBank;
 
+      // Debounce localStorage write (100ms) — coalesces rapid edits into one write
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         if (!userIdRef.current) return;
-        const { error } = await saveUserData(userIdRef.current, state.weeks, state.activityBank);
+        const { weeks, activityBank } = useDashboardStore.getState();
+        saveLocalData(userIdRef.current, weeks, activityBank);
+        setSyncStatus("pending");
+
+        // Supabase sync after another 1.4s (total ~1.5s from last edit)
+        const { error } = await saveUserData(userIdRef.current, weeks, activityBank);
         if (error) {
           setSyncStatus("failed");
         } else {
           setSyncStatus("synced");
         }
-      }, 1500);
+      }, 100);
     });
 
     // When connection returns, push any locally-saved data that failed to sync
@@ -172,49 +227,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   // ── Inner fetch function (extracted so it can be timeout-raced) ─────────────
-  async function fetchAndPopulate(userId: string, routerRef: typeof router) {
-    // 1. Load profile from Supabase → populate onboarding store
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select(
-        "full_name, department, university, company_name, company_dept, industry, start_date, attendance_days, has_personal_study, study_framing"
-      )
-      .eq("id", userId)
-      .maybeSingle();
-
-    // Extended columns — each fetched individually so a missing column never
-    // poisons unrelated data.
+  async function fetchAndPopulate(userId: string, routerRef: typeof router, isBackgroundRefresh = false) {
+    // Safe per-column helper — a missing column returns null instead of failing the whole query
     const loadCol = async <T extends Record<string, unknown>>(col: string): Promise<T | null> => {
       const r = await supabase.from("profiles").select(col).eq("id", userId).maybeSingle();
       return r.error ? null : (r.data as T | null);
     };
 
-    const lastPaymentPromise = Promise.resolve(
+    // All requests fire in parallel — core profile + extended columns + payment + saved logbook
+    const [profileResult, durRow, subRow, genRow, fullPayRow, lastPayment, savedWeeks] = await Promise.all([
       supabase
-        .from("payment_transactions")
-        .select("created_at")
-        .eq("user_id", userId)
-        .eq("status", "success")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    )
-      .then((r) => (r.error ? null : r.data))
-      .catch(() => null);
-
-    const [durRow, subRow, genRow, fullPayRow, lastPayment] = await Promise.all([
+        .from("profiles")
+        .select("full_name, department, university, company_name, company_dept, industry, start_date, attendance_days, has_personal_study, study_framing")
+        .eq("id", userId)
+        .maybeSingle(),
       loadCol<{ siwes_duration_months: number }>("siwes_duration_months"),
-      loadCol<{ subscription_status: string; subscription_expires_at: string | null }>(
-        "subscription_status, subscription_expires_at"
-      ),
+      loadCol<{ subscription_status: string; subscription_expires_at: string | null }>("subscription_status, subscription_expires_at"),
       loadCol<{ ai_generations_used: number }>("ai_generations_used"),
       loadCol<{ is_full_payment: boolean }>("is_full_payment"),
-      lastPaymentPromise,
+      Promise.resolve(
+        supabase
+          .from("payment_transactions")
+          .select("created_at")
+          .eq("user_id", userId)
+          .eq("status", "success")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ).then((r) => (r.error ? null : r.data)).catch(() => null),
+      loadUserData(userId),
     ]);
+
+    const profile = profileResult.data;
 
     if (!profile) {
       // No profile row means onboarding was never completed
-      routerRef.replace("/onboarding");
+      if (!isBackgroundRefresh) routerRef.replace("/onboarding");
       return;
     }
 
@@ -264,9 +312,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       subscribedAt
     );
 
-    // 2. Load saved weeks + activity bank, or generate fresh from profile
+    // 2. Saved weeks already loaded in parallel above — no extra await needed
     const totalWeeks = durationMonthsToWeeks(siwesDuration);
-    const saved = await loadUserData(userId);
+    const saved = savedWeeks;
 
     // Check if there is a newer local snapshot (written on every store change).
     // This recovers entries created while Supabase sync was failing.
@@ -280,7 +328,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     if (weeksSource && weeksSource.weeks.length > 0 && weeksSource.weeks.length === totalWeeks) {
       // Use saved data (local-first if newer, otherwise Supabase)
-      useDashboardStore.getState().setWeeks(weeksSource.weeks);
+      // recalcWeekFlags ensures isCurrentWeek/isFutureWeek reflect today's real date
+      useDashboardStore.getState().setWeeks(recalcWeekFlags(weeksSource.weeks));
       useDashboardStore.setState({ activityBank: bankSource!.activityBank });
 
       // If we used local data that's ahead of Supabase, push it up now
@@ -299,38 +348,43 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // 3. Save offline snapshot for future fallback
-    const weeks = useDashboardStore.getState().weeks;
-    const activityBank = useDashboardStore.getState().activityBank;
-    saveOfflineSnapshot({
-      userId,
-      savedAt: new Date().toISOString(),
-      profile: {
-        full_name: profile.full_name ?? null,
-        department: profile.department ?? null,
-        university: profile.university ?? null,
-        company_name: profile.company_name ?? null,
-        company_dept: profile.company_dept ?? null,
-        industry: profile.industry ?? null,
-        start_date: profile.start_date ?? null,
-        attendance_days: profile.attendance_days ?? null,
-        has_personal_study: profile.has_personal_study ?? null,
-        study_framing: profile.study_framing ?? null,
-      },
-      siwesDuration,
-      subscription: {
-        status: subStatus,
-        expiresAt: isFullPayment ? null : subExpiry,
-        generationsUsed: genUsed,
-        isFullPayment,
-        subscribedAt,
-      },
-      weeks,
-      activityBank,
-    });
+    // Only set ready on foreground load — background refresh skips this
+    if (!isBackgroundRefresh) {
+      isInitializingRef.current = false;
+      setReady(true);
+    }
 
-    isInitializingRef.current = false;
-    setReady(true);
+    // 3. Save offline snapshot in background — never blocks the UI
+    setTimeout(() => {
+      const weeks = useDashboardStore.getState().weeks;
+      const activityBank = useDashboardStore.getState().activityBank;
+      saveOfflineSnapshot({
+        userId,
+        savedAt: new Date().toISOString(),
+        profile: {
+          full_name: profile.full_name ?? null,
+          department: profile.department ?? null,
+          university: profile.university ?? null,
+          company_name: profile.company_name ?? null,
+          company_dept: profile.company_dept ?? null,
+          industry: profile.industry ?? null,
+          start_date: profile.start_date ?? null,
+          attendance_days: profile.attendance_days ?? null,
+          has_personal_study: profile.has_personal_study ?? null,
+          study_framing: profile.study_framing ?? null,
+        },
+        siwesDuration,
+        subscription: {
+          status: subStatus,
+          expiresAt: isFullPayment ? null : subExpiry,
+          generationsUsed: genUsed,
+          isFullPayment,
+          subscribedAt,
+        },
+        weeks,
+        activityBank,
+      });
+    }, 0);
   }
 
   if (!ready) {

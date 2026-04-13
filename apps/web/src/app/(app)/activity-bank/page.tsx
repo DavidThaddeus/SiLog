@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardStore } from "@/store/dashboard";
 import { useInitWeeks } from "@/hooks/useInitWeeks";
@@ -289,18 +289,27 @@ export default function ActivityBankPage() {
   useInitWeeks();
 
   const items = activityBank.items;
-  const expiredItems = items.filter((a) => daysUntilExpiry(a.expiresAt) <= 0);
-  const activeItems = items.filter((a) => daysUntilExpiry(a.expiresAt) > 0);
-  const urgentItems = activeItems.filter((a) => daysUntilExpiry(a.expiresAt) <= 7);
 
-  // Sort: expired first, then urgent, then by expiry date
-  const sorted = [
-    ...expiredItems,
-    ...urgentItems,
-    ...activeItems.filter((a) => daysUntilExpiry(a.expiresAt) > 7),
-  ];
+  const { expiredItems, urgentItems, activeItems, sorted, coversDays } = useMemo(() => {
+    const expired: typeof items = [];
+    const urgent: typeof items = [];
+    const normal: typeof items = [];
 
-  const coversDays = Math.ceil(items.length / 2.5);
+    for (const a of items) {
+      const d = daysUntilExpiry(a.expiresAt);
+      if (d <= 0) expired.push(a);
+      else if (d <= 7) urgent.push(a);
+      else normal.push(a);
+    }
+
+    return {
+      expiredItems: expired,
+      urgentItems: urgent,
+      activeItems: normal,
+      sorted: [...expired, ...urgent, ...normal],
+      coversDays: Math.ceil(items.length / 2.5),
+    };
+  }, [items]);
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -524,28 +533,26 @@ export default function ActivityBankPage() {
             )}
 
             {/* Active section */}
-            {activeItems.filter((a) => daysUntilExpiry(a.expiresAt) > 7).length > 0 && (
+            {activeItems.length > 0 && (
               <div>
                 {(expiredItems.length > 0 || urgentItems.length > 0) && (
                   <div style={{
                     fontSize: 9, fontFamily: "var(--font-dm-mono)", fontWeight: 700, letterSpacing: "0.12em",
                     textTransform: "uppercase", color: "var(--muted)", marginBottom: 10,
                   }}>
-                    Active ({activeItems.filter((a) => daysUntilExpiry(a.expiresAt) > 7).length})
+                    Active ({activeItems.length})
                   </div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {activeItems
-                    .filter((a) => daysUntilExpiry(a.expiresAt) > 7)
-                    .map((item) => (
-                      <BankItemCard key={item.id} item={item}
-                        selected={selectedIds.has(item.id)}
-                        onToggleSelect={() => toggleSelect(item.id)}
-                        onEdit={editBankItem}
-                        onDelete={handleDelete}
-                        onUseInEntry={(item) => router.push(`/entry?bankItems=${item.id}`)}
-                      />
-                    ))}
+                  {activeItems.map((item) => (
+                    <BankItemCard key={item.id} item={item}
+                      selected={selectedIds.has(item.id)}
+                      onToggleSelect={() => toggleSelect(item.id)}
+                      onEdit={editBankItem}
+                      onDelete={handleDelete}
+                      onUseInEntry={(item) => router.push(`/entry?bankItems=${item.id}`)}
+                    />
+                  ))}
                 </div>
               </div>
             )}

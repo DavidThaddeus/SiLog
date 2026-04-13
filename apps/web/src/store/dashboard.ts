@@ -160,27 +160,36 @@ export const useDashboardStore = create<DashboardStore>()(
 
   fillDayEntry: (entryId, data) =>
     set((s) => ({
-      weeks: s.weeks.map((w) => ({
-        ...w,
-        days: w.days.map((d) =>
-          d.id === entryId
-            ? {
-                ...d,
-                technicalNotes: data.technicalNotes,
-                technicalNotesCurrent: data.technicalNotes,
-                keyActivities: data.keyActivities,
-                progressChartEntry: data.progressChartEntry,
-                deptBridgeUsed: data.deptBridgeUsed,
-                notesPreview: data.notesPreview,
-                hasNotes: true,
-                status: "filled" as const,
-              }
-            : d
-        ),
-        completedDaysCount: w.days.filter(
-          (d) => d.id === entryId || (d.hasNotes && d.isAttendanceDay)
-        ).length,
-      })),
+      weeks: s.weeks.map((w) => {
+        // Check if this week contains the target day before doing any work
+        const targetIdx = w.days.findIndex((d) => d.id === entryId);
+        if (targetIdx === -1) return w;
+
+        // Single pass: build updated days array and count completions together
+        let completedDaysCount = 0;
+        const days = w.days.map((d, i) => {
+          let updated: DayEntry;
+          if (i === targetIdx) {
+            updated = {
+              ...d,
+              technicalNotes: data.technicalNotes,
+              technicalNotesCurrent: data.technicalNotes,
+              keyActivities: data.keyActivities,
+              progressChartEntry: data.progressChartEntry,
+              deptBridgeUsed: data.deptBridgeUsed,
+              notesPreview: data.notesPreview,
+              hasNotes: true,
+              status: "filled" as const,
+            };
+          } else {
+            updated = d;
+          }
+          if (updated.hasNotes && updated.isAttendanceDay) completedDaysCount++;
+          return updated;
+        });
+
+        return { ...w, days, completedDaysCount };
+      }),
     })),
 
   getDayEntry: (entryId) => {

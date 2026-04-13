@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useDashboardStore } from "@/store/dashboard";
 import { useOnboardingStore } from "@/store/onboarding";
 
@@ -7,10 +8,13 @@ export function ProgressHeader() {
   const { weeks } = useDashboardStore();
   const { data } = useOnboardingStore();
 
-  const completedWeeks = weeks.filter((w) => !w.isFutureWeek && !w.isCurrentWeek).length;
-  const currentWeek = weeks.find((w) => w.isCurrentWeek);
-  const totalWeeks = weeks.length;
-  const pct = totalWeeks > 0 ? (completedWeeks / totalWeeks) * 100 : 0;
+  const { completedWeeks, currentWeek, totalWeeks, pct } = useMemo(() => {
+    const completedWeeks = weeks.filter((w) => !w.isFutureWeek && !w.isCurrentWeek).length;
+    const currentWeek = weeks.find((w) => w.isCurrentWeek);
+    const totalWeeks = weeks.length;
+    const pct = totalWeeks > 0 ? (completedWeeks / totalWeeks) * 100 : 0;
+    return { completedWeeks, currentWeek, totalWeeks, pct };
+  }, [weeks]);
 
   return (
     <div
