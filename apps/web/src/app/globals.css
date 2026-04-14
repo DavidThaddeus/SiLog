@@ -59,6 +59,14 @@ body {
   overflow-x: hidden; /* prevent horizontal scroll/clipping on all pages */
 }
 
+/* Prevent iOS Safari from auto-zooming when an input is focused (requires font-size >= 16px).
+   Using font-size: max(16px, 1em) keeps visible size the same while satisfying the threshold. */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
 /* Placeholder text adapts to theme */
 ::placeholder {
   color: var(--text-muted);

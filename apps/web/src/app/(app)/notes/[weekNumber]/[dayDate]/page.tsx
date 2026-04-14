@@ -7,48 +7,10 @@ import { generateMockWeeks, MOCK_ACTIVITY_BANK } from "@/lib/dashboard-mock";
 import { AIChatPanel } from "@/components/notes/AIChatPanel";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import type { DayEntry, WeekEntry } from "@/types/dashboard";
+import { LogbookText } from "@/components/logbook/LogbookText";
 
 type Tab = "day" | "week";
 
-function NotesText({ text }: { text: string }) {
-  const diagIdx = text.search(/DIAGRAM SUGGESTION:/i);
-  const mainText = diagIdx !== -1 ? text.slice(0, diagIdx).trimEnd() : text;
-  const diagText = diagIdx !== -1 ? text.slice(diagIdx) : null;
-  return (
-    <>
-      {mainText}
-      {diagText && (
-        <div
-          style={{
-            marginTop: 14,
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "1.5px dashed rgba(140,90,60,0.4)",
-            background: "rgba(140,90,60,0.05)",
-            fontSize: 12,
-            lineHeight: 1.6,
-          }}
-        >
-          <span
-            style={{
-              display: "block",
-              fontFamily: "var(--font-dm-mono)",
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "#8C5A3C",
-              marginBottom: 4,
-            }}
-          >
-            ✏ Diagram Suggestion
-          </span>
-          {diagText.replace(/^DIAGRAM SUGGESTION:\s*/i, "")}
-        </div>
-      )}
-    </>
-  );
-}
 
 function formatDateLong(iso: string): string {
   const d = new Date(iso + "T00:00:00");
@@ -253,7 +215,7 @@ function DayView({ day, onNotesChange }: { day: DayEntry; onNotesChange: (t: str
             border: "1px solid var(--border)",
           }}
         >
-          <NotesText text={day.technicalNotesCurrent ?? day.technicalNotes ?? "No notes generated yet."} />
+          <LogbookText text={day.technicalNotesCurrent ?? day.technicalNotes ?? "No notes generated yet."} />
         </div>
       )}
     </div>
@@ -265,7 +227,8 @@ function WeekCompilationView({ week }: { week: WeekEntry }) {
   const { updateWeekSummary } = useDashboardStore();
   const [editingSummary, setEditingSummary] = useState(false);
   const [summaryDraft, setSummaryDraft] = useState(week.weekSummaryCurrent ?? week.weekSummary ?? "");
-  const daysWithNotes = week.days.filter((d) => d.hasNotes && d.technicalNotesCurrent);
+  // Show all attendance days — logged ones show their entry, unlogged ones show a placeholder
+  const attendanceDays = week.days.filter((d) => d.isAttendanceDay);
 
   const saveSummary = () => {
     updateWeekSummary(week.weekNumber, summaryDraft);
@@ -337,73 +300,80 @@ function WeekCompilationView({ week }: { week: WeekEntry }) {
         )}
       </div>
 
-      {/* All days */}
-      {daysWithNotes.map((day) => (
-        <div
-          key={day.id}
-          style={{
-            marginBottom: 28,
-            paddingBottom: 28,
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: "#8C5A3C",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 10,
-                fontWeight: 700,
-                color: "white",
-                fontFamily: "var(--font-dm-mono)",
-                flexShrink: 0,
-              }}
-            >
-              {day.dayName.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-                {day.dayName} — {formatDateShort(day.date)}
-              </div>
-              <StatusBadge status={day.status} />
-            </div>
-            {day.progressChartEntry && (
-              <div
-                style={{
-                  marginLeft: "auto",
-                  fontFamily: "var(--font-dm-mono)",
-                  fontSize: 9,
-                  color: "var(--muted)",
-                  maxWidth: 300,
-                  textAlign: "right",
-                  lineHeight: 1.4,
-                }}
-              >
-                {day.progressChartEntry}
-              </div>
-            )}
-          </div>
+      {/* All attendance days */}
+      {attendanceDays.map((day) => {
+        const notes = day.technicalNotesCurrent ?? day.technicalNotes ?? "";
+        const hasEntry = day.hasNotes && notes.trim().length > 0;
+        return (
           <div
+            key={day.id}
             style={{
-              fontSize: 13,
-              lineHeight: 1.85,
-              color: "var(--text)",
-              whiteSpace: "pre-wrap",
-              padding: "16px 20px",
-              background: "var(--surface)",
-              borderRadius: 10,
-              border: "1px solid var(--border)",
+              marginBottom: 28,
+              paddingBottom: 28,
+              borderBottom: "1px solid var(--border)",
             }}
           >
-            <NotesText text={day.technicalNotesCurrent ?? day.technicalNotes ?? ""} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: hasEntry ? "#8C5A3C" : "var(--border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "white",
+                  fontFamily: "var(--font-dm-mono)",
+                  flexShrink: 0,
+                }}
+              >
+                {day.dayName.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+                  {day.dayName} — {formatDateShort(day.date)}
+                </div>
+                <StatusBadge status={day.status} />
+              </div>
+              {day.progressChartEntry && (
+                <div
+                  style={{
+                    marginLeft: "auto",
+                    fontFamily: "var(--font-dm-mono)",
+                    fontSize: 9,
+                    color: "var(--muted)",
+                    maxWidth: 300,
+                    textAlign: "right",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {day.progressChartEntry}
+                </div>
+              )}
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                lineHeight: 1.85,
+                color: hasEntry ? "var(--text)" : "var(--muted)",
+                whiteSpace: "pre-wrap",
+                padding: "16px 20px",
+                background: "var(--surface)",
+                borderRadius: 10,
+                border: `1px solid ${hasEntry ? "var(--border)" : "rgba(140,90,60,0.1)"}`,
+              }}
+            >
+              {hasEntry
+                ? <LogbookText text={notes} />
+                : <span style={{ fontSize: 12, fontStyle: "italic" }}>No entry logged yet for this day.</span>
+              }
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

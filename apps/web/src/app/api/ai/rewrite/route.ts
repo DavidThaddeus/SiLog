@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
   const { instruction, currentNotes, dayName } = await req.json();
 
-  const hasAI = !!(process.env.ANTHROPIC_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  const hasAI = !!(process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_GPT4O || process.env.OPENAI_API_KEY_GPT4O_MINI || process.env.OPENROUTER_KEY_GEMINI || process.env.OPENROUTER_KEY_HAIKU || process.env.ANTHROPIC_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
   if (!hasAI) {
     return NextResponse.json({
       explanation: "Preview mode — add ANTHROPIC_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY to enable live rewriting.",

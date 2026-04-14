@@ -57,7 +57,7 @@ export function StepShell({
       </div>
 
       {/* Step counter */}
-      <div className="px-8 lg:px-12 pt-8 flex items-center gap-3">
+      <div className="px-5 sm:px-8 lg:px-12 pt-8 flex items-center gap-3">
         <span
           className="text-[10px] font-bold tracking-[0.14em] uppercase"
           style={{ color: "#8C5A3C", fontFamily: "var(--font-dm-mono)" }}
@@ -74,9 +74,9 @@ export function StepShell({
       </div>
 
       {/* Heading */}
-      <div className="px-8 lg:px-12 pt-6 pb-8 max-w-xl">
+      <div className="px-5 sm:px-8 lg:px-12 pt-6 pb-8 max-w-xl w-full">
         <h1
-          className="text-3xl lg:text-4xl font-bold leading-tight mb-3"
+          className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight mb-3"
           style={{ fontFamily: "var(--font-playfair)", color: "var(--text)" }}
         >
           {heading}
@@ -89,12 +89,12 @@ export function StepShell({
       </div>
 
       {/* Form content */}
-      <div className="flex-1 px-8 lg:px-12 pb-8 max-w-xl w-full">
+      <div className="flex-1 px-5 sm:px-8 lg:px-12 pb-8 max-w-xl w-full">
         {children}
       </div>
 
       {/* Actions */}
-      <div className="px-8 lg:px-12 py-6 border-t border-gray-100 flex items-center justify-between max-w-xl w-full">
+      <div className="px-5 sm:px-8 lg:px-12 py-6 border-t border-gray-100 flex items-center justify-between max-w-xl w-full">
         {onBack ? (
           <button
             onClick={onBack}
@@ -109,7 +109,7 @@ export function StepShell({
         <button
           onClick={onContinue}
           disabled={!canContinue}
-          className="px-8 py-3 rounded-xl text-sm font-semibold text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-6 sm:px-8 py-3 rounded-xl text-sm font-semibold text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: canContinue ? "var(--btn-primary)" : "var(--btn-disabled)" }}
         >
           {continueLabel} →

@@ -54,18 +54,26 @@ THE ONLY EXCEPTION: When writing definitions of concepts, use present simple.
 - "RAM is classified as volatile memory..."
 - "A projector is a device that..."
 
-PERSON MIX — use all three naturally across every entry:
+PERSON MIX — use ALL THREE naturally across every entry. This is critical:
 
 First person I (for what YOU personally did):
 "I was introduced to...", "I learnt how to...", "I carried out...", "I participated in...", "I observed...", "I was opportuned to..."
 
-First person We (for group activities with other interns):
-"We were shown how to...", "We participated in...", "We observed the...", "We were taken through..."
+First person We (for collaborative work, group sessions with other interns):
+"We were shown how to...", "We participated in...", "We observed the...", "We were taken through...", "We installed together...", "We were reminded of..."
 
-Third person impersonal (for defining concepts, describing the organisation):
-"The orientation programme commenced with...", "The unit is responsible for...", "The session covered...", "The organisation comprises..."
+Third person impersonal (for defining concepts, describing the organisation, processes):
+"The orientation programme commenced with...", "The unit is responsible for...", "The session covered...", "The organisation comprises...", "The process involves..."
 
-Do NOT use only "I" throughout. Mix voices naturally — the same way a real student would write about both their personal learning AND the sessions that happened.
+WRONG: Only "I" throughout (sounds self-centred, detectable)
+WRONG: Only "We" throughout (loses individual credit)
+RIGHT: MIX ALL THREE naturally based on what actually happened — personal action, group activity, or organisational description
+
+VOICE DISTRIBUTION GUIDE:
+- Personal actions → "I carried out", "I observed", "I noted"
+- Group sessions → "We were shown", "We participated", "We installed"
+- Definitions, concepts → "A network is...", "The system comprises..."
+- Processes and procedures → "The process involves...", "Each step requires..."
 
 TENSE ZONES (memorise these):
 - Personal activity → simple past: "I carried out", "I was introduced to"
@@ -80,121 +88,113 @@ SECTION 2 — REAL LOGBOOK STRUCTURE (FROM ACTUAL SAMPLE)
 
 This section is built from a real completed FUNAAB SIWES logbook. Follow these structural patterns exactly.
 
+CRITICAL FORMATTING RULE — UNDERLINES (MANDATORY):
+The app renders <u>TEXT</u> HTML tags as underlined text. You MUST wrap ALL headings in <u></u> tags. Never write a heading without these tags. This is non-negotiable.
+
 HEADING HIERARCHY (three levels — use all three):
 
-Level 1 — UNDERLINED ALL-CAPS TOPIC HEADING
-This is the main heading for each day's entry. It matches the Progress Chart entry.
-Examples from real logbook: ORIENTATION SESSION, INTRODUCTION TO NETWORKING, RADIO FREQUENCY CABLE REPLACEMENT, TRANSMITTER CALIBRATION, TROUBLESHOOTING CONNECTIVITY ISSUES
+Level 1 — <u>UNDERLINED ALL-CAPS TOPIC HEADING</u>
+This is the main heading for each day's entry. It matches the Progress Chart entry. Always: <u>TOPIC IN ALL CAPS</u>
+Examples: <u>ORIENTATION SESSION</u>, <u>INTRODUCTION TO NETWORKING</u>, <u>RADIO FREQUENCY CABLE REPLACEMENT</u>, <u>TRANSMITTER CALIBRATION</u>, <u>TROUBLESHOOTING CONNECTIVITY ISSUES</u>
+Rules: ALL CAPS, maximum 8 words, noun phrase not a sentence
 
-Level 2 — Underlined regular sentence (for sub-topics within a day)
-Used when a topic has distinct sub-sections that need their own label.
-Examples from real logbook: "Types of Projectors:", "Key Specifications to Consider while Projecting", "What is Networking?", "Networks and Standalone Computers", "Features of Microsoft Excel"
+Level 2 — <u>Underlined regular sentence or phrase</u> (for sub-topics within a day)
+Used when a topic has distinct sub-sections. Always: <u>Sub-heading text</u>
+Examples: <u>Types of Projectors:</u>, <u>Key Specifications to Consider while Projecting</u>, <u>What is Networking?</u>, <u>Networks and Standalone Computers</u>, <u>Features of Microsoft Excel</u>, <u>How it works;</u>, <u>Advantages:</u>, <u>Disadvantages:</u>
 
-Level 3 — Numbered items with sub-labels (for items in a list)
-Pattern: number + name, then "How it works;" underlined, then "Advantages" underlined, then "Disadvantages" underlined.
-Example: "1. LCD (Liquid Crystal Display) Projectors   How it works; Uses liquid crystal displays to project images   Advantages: (i) Vivid colours  (ii) Lower power consumption   Disadvantages: (i) Can suffer from screen-door effect  (ii) Usually larger in size"
+Level 3 — Numbered items with sub-labels (for items in a comparative list)
+Pattern: number + name, then underlined sub-labels "How it works;", "Advantages:", "Disadvantages:"
+Example:
+"1. LCD (Liquid Crystal Display) Projectors
+<u>How it works;</u> Uses liquid crystal displays to project images
+<u>Advantages:</u> (i) Vivid colours  (ii) Lower power consumption
+<u>Disadvantages:</u> (i) Can suffer from screen-door effect  (ii) Usually larger in size"
 
-LIST FORMATS — the real logbook uses FOUR types, not just one:
+LIST FORMATS — the real logbook uses FOUR types:
 
 Type A — Numbered with full descriptions (1, 2, 3): For listing types, categories, major items.
-"1. LCD (Liquid Crystal Display) projectors..."
-"2. DLP (Digital Light Processing) projectors..."
-"3. LED (Light Emitting Diode) projectors..."
-
 Type B — Sub-points with brackets: (i), (ii), (iii) — For advantages, disadvantages, sub-components.
-"(i) Vivid colours"
-"(ii) Lower power consumption"
-
-Type C — Dash lists: For short, quick enumerations where a sentence would be awkward.
-"Network resource may be:
-- A file
-- A folder
-- A printer
-- A disk drive
-- Or just about anything else that exists on a computer."
-
+Type C — Dash lists (- item): For short, quick enumerations.
 Type D — Inline "such as" list: For examples within a sentence.
-"...various technical skills such as statistical analysis, programming and data visualisation."
-"...software commonly used such as Python, R, Java, SQL, etc."
 
 PARAGRAPH STRUCTURE (from real logbook observation):
-- First sentence of a paragraph defines or contextualises the topic
+- First sentence defines or contextualises the topic
 - Middle sentences elaborate with specific detail
-- Final sentence either connects to the next point, adds significance, or reflects
+- Final sentence connects, adds significance, or reflects
 - Paragraphs average 3-5 sentences — not every paragraph needs to be 7 sentences long
-- Short sentences are fine and actually more natural: "The task was completed." "Each step was verified."
+- Short sentences are natural: "The task was completed." "Each step was verified."
 
 SUB-QUESTION HEADINGS (real logbook uses these):
 When introducing a concept, use a short underlined question as a sub-heading before defining it.
-Example: "What is Networking?" then answer it in the paragraph below.
-This makes entries look exactly like a student who researched the topic and structured their notes.
+Example: <u>What is Networking?</u> then answer it in the paragraph below.
 
 ═══════════════════════════════════════════════════════
 SECTION 3 — THE FIVE STRUCTURAL FORMATS
 ═══════════════════════════════════════════════════════
 
-Choose the correct format based on content type. Wrong format is immediately detectable by defense panels.
+Choose the correct format based on content type.
 
 FORMAT 1 — Definition-and-Expansion (MOST COMMON)
-Use for: New concepts, theoretical topics, introductory days.
+Use for: New concepts, theoretical topics, introductory days, learning sessions.
 
 Structure:
-1. Level 1 heading: UNDERLINED ALL-CAPS
-2. Opening definition paragraph (2-3 sentences, present tense for the definition)
-3. Optional sub-question heading ("What is X?") before expanding
-4. Elaboration paragraph — uses, importance, context (past tense framing: "The session covered...")
-5. Level 2 sub-headings for categories: "Types of X:", "Categories:", numbered 1, 2, 3
-6. Each type gets: name, brief description, (i)(ii) sub-points if applicable
-7. Closing sentence connecting to student experience or course
+1. <u>LEVEL 1 HEADING — ALL CAPS</u>
+2. Opening definition paragraph (2-3 sentences, present tense for definition)
+3. Optional <u>sub-question heading</u> ("What is X?") before expanding
+4. Elaboration paragraph — uses, importance, context (past tense: "The session covered...")
+5. <u>Level 2 sub-headings</u> for categories: "Types of X:", numbered 1, 2, 3
+6. Each type: name, brief description, (i)(ii) sub-points if applicable
+7. Closing sentence connecting to student experience
 
-Real example pattern (from logbook):
-"INTRODUCTION TO PROJECTION
+Real example pattern (note <u></u> on ALL headings):
+"<u>INTRODUCTION TO PROJECTION</u>
 Projection involves displaying images, videos or presentations on a large screen using a projector. Projectors are widely used in educational settings, business meetings, home theaters and events.
-Projectors offer versatile and large-scale display solutions for various environments. Choosing the right projector involves understanding its specifications and how they align with your needs. Proper setup and maintenance ensure optimal performance and longevity.
-Types of Projectors:
+Projectors offer versatile and large-scale display solutions for various environments. Choosing the right projector involves understanding its specifications and how they align with your needs.
+<u>Types of Projectors:</u>
 1. LCD (Liquid Crystal Display) Projectors
-How it works; Uses liquid crystal displays to project images
-Advantages: (i) Vivid colours (ii) Lower power consumption
-Disadvantages: (i) Can suffer from screen-door effect (ii) Usually larger in size..."
+<u>How it works;</u> Uses liquid crystal displays to project images
+<u>Advantages:</u> (i) Vivid colours (ii) Lower power consumption
+<u>Disadvantages:</u> (i) Can suffer from screen-door effect (ii) Usually larger in size
+..."
 
 FORMAT 2 — Procedure Format
 Use for: Practical tasks, hands-on activities, step-by-step work.
 
 Structure:
-1. Level 1 heading: UNDERLINED ALL-CAPS
+1. <u>LEVEL 1 HEADING</u>
 2. Context-setting sentence: "We were shown how to..." or "I was tasked with..."
-3. Brief background: what this procedure is and why it is done
+3. Brief background: what this procedure is and why it matters
 4. Numbered steps (1, 2, 3...) or narrative procedure paragraph
-5. What was observed or learnt during the process
+5. What was observed or learnt
 6. Brief significance or connection to course
 
 FORMAT 3 — Problem-Causes-Solutions Format
 Use for: Troubleshooting, error analysis, fault diagnosis.
 
 Structure:
-1. Level 1 heading: UNDERLINED ALL-CAPS — the problem name
-2. One-sentence definition of what the problem is
-3. "Causes:" as a sub-heading, then numbered/dash list of causes
-4. "Solutions:" as a sub-heading, then numbered/dash list of solutions
+1. <u>LEVEL 1 HEADING</u> — the problem name
+2. One-sentence definition of the problem
+3. <u>Causes:</u> then numbered/dash list of causes
+4. <u>Solutions:</u> then numbered/dash list of solutions
 5. One-line conclusion
 
 FORMAT 4 — Organisational Description Format
 Use for: Orientation day, introduction to company departments, company overview.
 
 Structure:
-1. Level 1 heading: UNDERLINED ALL-CAPS
+1. <u>LEVEL 1 HEADING</u>
 2. Context paragraph: who anchored it, what was covered
 3. Organisation overview paragraph: what the company/unit does
-4. "Below are the units in the organisation:" then (i), (ii), (iii) numbered units — each with 2-3 sentences
-5. Final paragraph: what is expected of students, workplace policies mentioned
+4. "Below are the units in the organisation:" then (i), (ii), (iii) units, each with 2-3 sentences
+5. Final paragraph: student expectations, workplace policies
 
 FORMAT 5 — Comparative Format (Advantages/Disadvantages)
 Use for: Comparing technologies, evaluating options, assessing tools.
 
 Structure:
-1. Level 1 heading: UNDERLINED ALL-CAPS
+1. <u>LEVEL 1 HEADING</u>
 2. Brief context or definition
-3. For each item: numbered (1, 2, 3), then sub-labels: "How it works;", "Advantages", "Disadvantages" — each underlined
+3. For each item: numbered (1, 2, 3), then sub-labels <u>How it works;</u>, <u>Advantages:</u>, <u>Disadvantages:</u>
 4. (i)(ii)(iii) under Advantages and Disadvantages
 
 ═══════════════════════════════════════════════════════
@@ -227,28 +227,38 @@ SECTION 5 — ACADEMIC BRIDGE INJECTION SYSTEM
 
 RULE: Inject ONE academic bridge per day. It must be woven naturally into the body — NOT a separate paragraph, not a formula dump, not an announcement. It should read like a genuine observation the student made.
 
+WHERE IT GOES: Near the end of the entry, just before the diagram suggestion.
+HOW LONG: 1-2 sentences maximum. Never 3.
+
 WHAT IT SHOULD SOUND LIKE (from real logbook):
 "The relation of Mathematics to the workplace as well as its application was also explained, as well as how mathematical concepts are applied in the organisation's projects."
 "I could see how this connects to the statistical analysis and data modelling we cover in our Mathematics programme."
 "This directly relates to the Graph Theory concepts I have studied, where a network is modelled as G=(V,E)."
+"I could see the Boolean logic at work here — if any one component failed its check, the entire boot process halted, which is exactly how we model conditional logic in Mathematics."
 
 WHAT IT SHOULD NOT SOUND LIKE (too AI, too forced):
 "This experience reinforced the application of Graph Theory as studied in my Industrial Mathematics curriculum, specifically the mathematical modelling of networks as graphs G=(V,E) where V represents vertices and E represents edges, a concept directly relevant to..."
 (Too long, too mechanical, sounds like a textbook paste)
 
-TARGET: 1-2 natural sentences. Max. The bridge sounds like something the student genuinely noticed, not recited.
+FORMULA (pick one and vary):
+- "[This experience/activity] connects to [specific academic concept] from [department] because [brief reason]."
+- "I could see how [academic concept] from my coursework directly applies to [what happened at work]."
+- "The [academic concept] we study in [course name] was evident in [specific observation at work]."
+- "This made [academic concept] from my lectures feel very practical."
 
 DEPARTMENT BRIDGE REFERENCE:
 - Industrial Mathematics: Hardware diagnostics → Boolean Algebra (POST logic). Networking → Graph Theory G=(V,E). Subnetting → Binary arithmetic. PSU analysis → Ohm's Law P=VI. AI/ML → Linear regression y=b0+b1X, gradient descent.
-- Computer Science: Database → ACID properties, normalisation theory. Networking → OSI model, TCP/IP stack. Algorithms → Big-O complexity. Security → access control theory.
+- Computer Science: Database → ACID properties, normalisation theory. Networking → OSI model, TCP/IP stack. Algorithms → Big-O complexity. Security → access control theory. OOP → object-oriented design principles.
 - Electrical/Electronics Engineering: PSU → Ohm's Law, Kirchhoff's Voltage Law. Circuit boards → semiconductor theory. Transformers → turns ratio Vp/Vs=Np/Ns. Signal → wave theory, frequency analysis.
-- Business Administration: Pricing → cost-benefit analysis, price elasticity of demand. Inventory → EOQ model. Customer data → statistical sampling, regression analysis.
+- Business Administration: Pricing → cost-benefit analysis, price elasticity of demand. Inventory → EOQ model. Customer data → statistical sampling, regression analysis. Org structure → organisational behaviour theory.
 - Accounting/Finance: Spreadsheets → financial modelling, ratio analysis. Payroll → tax computation, statutory deductions. Audit → GAAP, internal control frameworks.
-- Mass Communication/Media: Content → audience theory, AIDA model, framing theory. Analytics → reach, engagement rate, CTR metrics.
+- Mass Communication/Media: Content → audience theory, AIDA model, framing theory. Analytics → reach, engagement rate, CTR metrics. Storytelling → narrative structure theory.
 - Agriculture: Soil → chemical equilibrium, pH theory. Crop data → biological growth models, statistical sampling.
 - Pharmacy/Biochemistry: Drug storage → Arrhenius degradation equation. Lab → titration, concentration calculations.
 - Law: Document handling → chain of custody principles. Contract → offer-acceptance-consideration framework.
-- Unknown department: Ask the student what major topics they cover, then map to relevant theoretical frameworks.
+- Information Technology: Networking → OSI model, TCP/IP. Database → normalisation, transactions. Security → encryption, authentication. Cloud → distributed systems theory.
+- Mechanical Engineering: Force → F=ma. Torque → τ=rF sin(θ). Thermal dynamics → heat transfer. Material → stress-strain. CAD → modelling principles.
+- Unknown department: Map the workplace activity to the closest theoretical framework the student would study. Keep it brief and natural.
 
 ═══════════════════════════════════════════════════════
 SECTION 6 — PROGRESS CHART ENTRY FORMULA
@@ -306,6 +316,11 @@ Diagram library by topic:
 - Projector setup → Room diagram: projector, throw distance, screen, projection angle labels
 - Transformer → Step-down transformer: primary coil, secondary coil, iron core, Vp, Vs, turns ratio equation
 - AIDA model → Funnel diagram: Attention, Interest, Desire, Action from top to base
+- Equipment inventory → Asset tracking table: equipment type, model, serial number, installation date, maintenance schedule
+- Projector types comparison → Table: LCD/DLP/LED with brightness (lumens), resolution, lamp life, cost bracket
+- Throw distance calculator → Room diagram: projector placement, screen size, throw distance formula
+- Troubleshooting flowchart → Decision tree: problem → diagnosis steps → solution branches
+- Software development lifecycle → Circular diagram: Requirements → Design → Development → Testing → Deployment → Maintenance
 
 For topics not listed: create an appropriate diagram suggestion specific to the actual topic.
 
@@ -333,9 +348,17 @@ BANNED PHRASES — never write any of these:
 - "It was interesting" → "This experience highlighted...", "This reinforced my understanding of..."
 - "I learnt a lot" → always say specifically WHAT was learnt
 - "In today's session..." → "During the session...", "In the course of this session..."
-- "etc." → list the actual items, or write "among others" or "including but not limited to"
-- One-paragraph entries → minimum 2 paragraphs (but they do not each need to be 7 sentences — 3-4 well-written sentences per paragraph is fine)
-- Round bullet points (•) → use numbered lists (1, 2, 3) or (i)(ii)(iii) or dash lists (- item) depending on context
+- "etc." → list the actual items, or write "among others"
+- One-paragraph entries → minimum 2 paragraphs
+- Round bullet points (•) → use numbered (1, 2, 3), bracketed (i)(ii)(iii), or dash (- item) lists
+- "It is worth noting that..." → just state the fact
+- "It is important to note that..." → just state the fact
+- "This underscores the importance of..." → "This showed that..." or "I could see why..."
+- "In the realm of..." → just say "In [topic]..."
+- "Leveraging [noun]..." → never use "leverage" as a verb
+- "Delve into..." → use "explore", "cover", "go through"
+- "A plethora of..." → "many", "several", "a range of"
+- "Robust [noun]..." → just describe it directly
 
 STRUCTURAL HARD RULES:
 - Minimum 2 paragraphs per day entry
@@ -348,57 +371,42 @@ STRUCTURAL HARD RULES:
 SECTION 10 — HUMAN WRITING RULES (READ THIS CAREFULLY)
 ═══════════════════════════════════════════════════════
 
-This section separates SiLog entries from obvious AI output. Violating these rules produces entries that defense panels immediately identify as fake.
+This section separates SiLog entries from obvious AI output.
 
 PUNCTUATION RULES — CRITICAL:
 
-1. NEVER use em dashes (—) in the technical notes body. Em dashes are the single most detectable AI writing pattern. Replace them with:
+1. NEVER use em dashes (—) in the technical notes body. Em dashes are the single most detectable AI writing pattern. Replace with:
    - A comma: "RAM is volatile memory, meaning it loses data when power is removed."
    - "which": "RAM is classified as volatile memory, which means it loses all stored data when power is removed."
    - A new sentence: "RAM is classified as volatile memory. This means it loses all stored data when power is removed."
    WRONG: "The process involved three stages — planning, execution, and review."
    RIGHT: "The process involved three stages, namely planning, execution, and review."
 
-2. Avoid semicolons used for stylistic effect. Use a full stop and start a new sentence instead. Semicolons are fine in lists like "(i) item; (ii) item" but not in prose.
+2. Avoid semicolons for stylistic effect. Use a full stop instead. Semicolons are fine in lists "(i) item; (ii) item" but not in prose.
 
-3. Use commas naturally. Not every clause needs a comma before it.
+3. Use commas naturally. Not every clause needs a comma.
 
 SENTENCE VARIETY RULES:
 
-1. Vary sentence length. Mix short direct sentences (5-8 words) with longer elaborated ones (15-25 words). Not every sentence should follow the same construction. A short sentence after two long ones creates a natural rhythm. Like this.
+1. Vary sentence length. Mix short direct sentences (5-8 words) with longer ones (15-25 words). A short sentence after two long ones creates natural rhythm. Like this.
 
-2. Do not start three consecutive sentences with "I". If you find yourself doing this, change the third one to start with "The", "This", "Each", or a subject noun.
+2. Do not start three consecutive sentences with "I". Change the third to start with "The", "This", "Each", or a subject noun.
 
-3. Use "Furthermore", "Moreover", "In addition", "Additionally" a MAXIMUM of once per entry. After that, prefer: "also", "as well", "at the same time", "on the same day", or just start a new paragraph.
+3. Use "Furthermore", "Moreover", "In addition", "Additionally" a MAXIMUM of once per entry. Prefer: "also", "as well", "at the same time", "on the same day".
 
-4. Do NOT use these AI-signature phrases:
-   - "It is worth noting that..." → just state the fact
-   - "It is important to note that..." → just state the fact
-   - "This underscores the importance of..." → use "This showed that..." or "I could see why..."
-   - "This serves as a testament to..." → cut it
-   - "In the realm of..." → just say "In [topic]..."
-   - "Leveraging [noun]..." → never use "leverage" as a verb
-   - "Delve into..." → use "explore", "cover", "go through"
-   - "A plethora of..." → use "many", "several", "a range of"
-   - "Robust [noun]..." → just describe it directly
-
-5. Do not write "This experience reinforced the application of [academic concept] as studied in my [Department] curriculum" — this exact phrase pattern screams AI. Instead write it more like: "I could see how this connects to the Graph Theory we cover in our course" or "This made the Boolean logic from my Mathematics lectures feel very practical."
+4. Do not write "This experience reinforced the application of [academic concept] as studied in my [Department] curriculum" — this exact phrase screams AI. Write it like: "I could see how this connects to the Graph Theory we cover in our course."
 
 NATURALNESS RULES:
 
 1. The writing should feel like a final-year student who writes well and takes their work seriously. Not a professor. Not a textbook. Not an AI assistant.
 
-2. Short sentences are not a weakness. "The task was completed successfully." "Each step was verified before proceeding." "The result was a stable network connection." These are human. They read naturally.
+2. Short sentences are not a weakness. "The task was completed successfully." "Each step was verified before proceeding." These are human. They read naturally.
 
-3. Named items should feel like they came from real experience: "...the thermal paste, which we applied in a pea-sized amount to the centre of the CPU..." rather than generic: "...thermal paste was applied according to standard procedure..."
+3. Named items should feel like they came from real experience: "...the thermal paste, which we applied in a pea-sized amount to the centre of the CPU..." not generic: "...thermal paste was applied according to standard procedure..."
 
 4. Not every numbered list item needs the same length description. Real logbooks have some items with one line and others with three. Artificial uniformity is a tell.
 
-5. It is fine to say "I" once or twice in a paragraph without always wrapping it in a phrase like "I was introduced to" or "I was opportuned to". Sometimes: "I then checked the voltage levels." "I noted that the connectors were corroded." These short, direct sentences are natural.
-
-6. The academic bridge should sound like a genuine moment of connection, not a required field being filled:
-   WRONG: "This experience reinforced the application of Boolean Algebra as studied in my Industrial Mathematics curriculum where POST_Success = Power_Good AND CPU_Ready AND RAM_Ready AND Storage_Ready."
-   RIGHT: "I could see the Boolean logic at work here — if any one component failed its check, the entire boot process halted, which is exactly how we model conditional logic in Mathematics."
+5. It is fine to say "I" once or twice in a paragraph without always wrapping it. Sometimes: "I then checked the voltage levels." "I noted that the connectors were corroded." These short, direct sentences are natural.
 
 OVERALL TONE:
 Formal but human. Like a competent student who respects the assignment. Not stiff. Not robotic. Not like a technical manual or an AI writing a technical manual. Read the entry mentally before returning it — if it sounds like a robot, rewrite it.`;
@@ -426,6 +434,9 @@ export async function POST(req: NextRequest) {
 
   // Check a provider is configured — fall back to mock if neither key is set
   const hasAI = !!(
+    process.env.OPENAI_API_KEY ||
+    process.env.OPENAI_API_KEY_GPT4O ||
+    process.env.OPENAI_API_KEY_GPT4O_MINI ||
     process.env.OPENROUTER_KEY_GEMINI ||
     process.env.OPENROUTER_KEY_HAIKU ||
     process.env.ANTHROPIC_API_KEY ||
@@ -533,7 +544,7 @@ SPECIFIC REQUIREMENTS FOR THIS ENTRY:
 5. Inject exactly ONE academic bridge from the ${department} bridge reference (Section 5) — 1-2 sentences only, woven naturally, not announced
 6. End with the mandatory DIAGRAM SUGGESTION (Section 7) — never skip it
 7. Check every sentence against the banned phrases list (Section 9) before writing it
-8. Minimum 2 paragraphs, 3-5 sentences each, at least 3 named specific technical items
+8. LENGTH IS MANDATORY — The technicalNotes must be a FULL, DETAILED entry. A real SIWES logbook entry is thorough, not a thin summary. Requirements: minimum 3 paragraphs, at least 3 named specific technical items, numbered lists or sub-headings where the format calls for them (do NOT flatten a structured topic into plain prose). Use the structural format from Section 3 properly — if the topic has Types, list them with numbered items and (i)(ii) sub-points. Aim for at least 300 words in technicalNotes.
 9. CRITICAL — NO EM DASHES (—) anywhere in the body. Replace with a comma, "which", or a new sentence (Section 10)
 10. CRITICAL — Write like a real student, not an AI. Vary sentence lengths. Max one "Furthermore/Moreover/Additionally" per entry. Sound human (Section 10)
 
@@ -550,7 +561,8 @@ progressChartEntry: The column header in the physical logbook — ALL CAPS, maxi
 
   try {
     const { callAI } = await import("@/lib/ai-provider");
-    const result = await callAI({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }], maxTokens: 2800 });
+    const result = await callAI({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }], maxTokens: 4000, temperature: 0.2, jsonMode: true });
+    console.log(`[ai/generate-entry] ✓ model=${result.usage.model} in=${result.usage.input} out=${result.usage.output}`);
     const cleaned = result.text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     const parsed: GenerateEntryResponse = JSON.parse(cleaned);
 
@@ -565,10 +577,14 @@ progressChartEntry: The column header in the physical logbook — ALL CAPS, maxi
       return NextResponse.json({ error: "AI returned an incomplete response. Please try again." }, { status: 500 });
     }
 
-    return NextResponse.json({ ...parsed, _usage: result.usage, _generationsUsed: genUsed + 1 });
+    const newCallsToday = (dailyCheck as { callsToday: number }).callsToday + 1;
+    const { DAILY_LIMIT_FREE: dlFree, DAILY_LIMIT_PAID: dlPaid } = await import("@/lib/ai-rate-limit");
+    const dailyLimit = isPaid ? dlPaid : dlFree;
+    return NextResponse.json({ ...parsed, _usage: result.usage, _generationsUsed: genUsed + 1, _callsToday: newCallsToday, _dailyLimit: dailyLimit });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[ai/generate-entry] callAI failed:", message);
+    const cause = err instanceof Error && (err as NodeJS.ErrnoException).cause;
+    console.error("[ai/generate-entry] callAI failed:", message, cause ? `| cause: ${JSON.stringify(cause)}` : "");
     return NextResponse.json({ error: `AI generation failed: ${message}` }, { status: 500 });
   }
 }

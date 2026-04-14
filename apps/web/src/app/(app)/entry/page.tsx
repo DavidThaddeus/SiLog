@@ -12,6 +12,7 @@ import { authHeaders } from "@/lib/auth-fetch";
 import type { DayEntry, WeekEntry, BankedActivity } from "@/types/dashboard";
 import type { GenerateEntryResponse } from "@/app/api/ai/generate-entry/route";
 import type { ExtractActivitiesResponse } from "@/app/api/ai/extract-activities/route";
+import { LogbookText } from "@/components/logbook/LogbookText";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -458,7 +459,7 @@ function Step3Activities({ day, week, activities, loading, nothingToday, bankedI
         <p style={{ fontSize: 13, color: "var(--muted)" }}>
           {nothingToday
             ? "No entry for today — pick activities from your bank to use, or leave empty for a curriculum fallback entry."
-            : `I found ${activities.length} activities. Select which to use in today's logbook (2–3 recommended). The rest can go to your Activity Bank for quiet days.`}
+            : `I found ${activities?.length ?? 0} activities. Select which to use in today's logbook (2–3 recommended). The rest can go to your Activity Bank for quiet days.`}
         </p>
       </div>
 
@@ -631,35 +632,9 @@ function Step4Preview({ day, week, generated, loading, onSave, onRefine, onBack 
         <div style={{ fontSize: 9, fontFamily: "var(--font-dm-mono)", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8C5A3C", marginBottom: 10 }}>
           Technical Notes
         </div>
-        {(() => {
-          const diagIdx = generated.technicalNotes.search(/DIAGRAM SUGGESTION:/i);
-          const mainText = diagIdx !== -1 ? generated.technicalNotes.slice(0, diagIdx).trimEnd() : generated.technicalNotes;
-          const diagText = diagIdx !== -1 ? generated.technicalNotes.slice(diagIdx) : null;
-          return (
-            <>
-              <div style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text)", whiteSpace: "pre-line" }}>
-                {mainText}
-              </div>
-              {diagText && (
-                <div style={{
-                  marginTop: 14,
-                  padding: "10px 14px",
-                  borderRadius: 8,
-                  border: "1.5px dashed rgba(140,90,60,0.4)",
-                  background: "rgba(140,90,60,0.05)",
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                  color: "var(--text-muted)",
-                }}>
-                  <span style={{ display: "block", fontFamily: "var(--font-dm-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8C5A3C", marginBottom: 4 }}>
-                    ✏ Diagram Suggestion
-                  </span>
-                  {diagText.replace(/^DIAGRAM SUGGESTION:\s*/i, "")}
-                </div>
-              )}
-            </>
-          );
-        })()}
+        <div style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text)" }}>
+          <LogbookText text={generated.technicalNotes} />
+        </div>
       </div>
 
       {/* Academic bridge */}
@@ -790,6 +765,17 @@ function EntryPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fetch daily usage on mount so user sees remaining calls before generating
+  useEffect(() => {
+    authHeaders().then((headers) =>
+      fetch("/api/ai/usage", { headers }).then((r) => r.json()).then((d) => {
+        if (typeof d.callsToday === "number") setDailyCallsUsed(d.callsToday);
+        if (typeof d.dailyLimit === "number") setDailyLimit(d.dailyLimit);
+      }).catch(() => {})
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // If coming from dashboard with ?week=X&date=YYYY-MM-DD, pre-select and skip to step 2
   useEffect(() => {
     if (weeks.length === 0) return;
@@ -822,6 +808,10 @@ function EntryPageInner() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
+  // Daily usage
+  const [dailyCallsUsed, setDailyCallsUsed] = useState<number | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+
   // Step 5 state
   const [saving, setSaving] = useState(false);
   const [savedBankedCount, setSavedBankedCount] = useState(0);
@@ -845,7 +835,7 @@ function EntryPageInner() {
           body: JSON.stringify({ rawDescription: raw, dayName: selectedDay?.dayName ?? "Monday" }),
         });
         const data: ExtractActivitiesResponse = await res.json();
-        setExtractedActivities(data.activities);
+        setExtractedActivities(Array.isArray(data.activities) ? data.activities : []);
       } catch {
         setExtractedActivities([raw.trim()]);
       } finally {
@@ -907,12 +897,13 @@ function EntryPageInner() {
         return;
       }
       if (res.status === 429) {
-        // Daily limit reached — read the server message which includes the exact numbers
         try {
           const errData = await res.json();
-          setGenerateError(errData?.message ?? "You've reached today's AI generation limit. Come back tomorrow.");
+          if (typeof errData?.limit === "number") setDailyLimit(errData.limit);
+          if (typeof errData?.callsToday === "number") setDailyCallsUsed(errData.callsToday);
+          setGenerateError(`You've used all ${errData?.limit ?? dailyLimit ?? ""} AI calls for today. Come back at 12:00 AM Nigeria time.`);
         } catch {
-          setGenerateError("You've reached today's AI generation limit. Come back tomorrow.");
+          setGenerateError("You've reached today's AI generation limit. Come back at 12:00 AM Nigeria time.");
         }
         setGenerating(false);
         return;
@@ -934,11 +925,13 @@ function EntryPageInner() {
         return;
       }
       setGenerated(data);
-      // Sync generation count from server — covers both generate and refine
-      const serverCount = (data as GenerateEntryResponse & { _generationsUsed?: number })._generationsUsed;
-      if (typeof serverCount === "number") {
-        useSubscriptionStore.getState().setGenerationsUsed(serverCount);
+      // Sync generation count and daily usage from server
+      const meta = data as GenerateEntryResponse & { _generationsUsed?: number; _callsToday?: number; _dailyLimit?: number };
+      if (typeof meta._generationsUsed === "number") {
+        useSubscriptionStore.getState().setGenerationsUsed(meta._generationsUsed);
       }
+      if (typeof meta._callsToday === "number") setDailyCallsUsed(meta._callsToday);
+      if (typeof meta._dailyLimit === "number") setDailyLimit(meta._dailyLimit);
     } catch {
       // noop, spinner stays
     } finally {
@@ -1032,6 +1025,25 @@ function EntryPageInner() {
             }} />
           )}
 
+          {/* Daily usage pill — shown on steps 2, 3, 4 so users always know their remaining calls */}
+          {(step === 2 || step === 3) && dailyLimit !== null && dailyCallsUsed !== null && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "4px 12px", borderRadius: 20,
+                background: dailyCallsUsed >= dailyLimit ? "rgba(220,38,38,0.08)" : "rgba(140,90,60,0.08)",
+                border: `1px solid ${dailyCallsUsed >= dailyLimit ? "rgba(220,38,38,0.2)" : "rgba(140,90,60,0.2)"}`,
+                fontSize: 11, fontFamily: "var(--font-dm-mono)", fontWeight: 600,
+                color: dailyCallsUsed >= dailyLimit ? "#DC2626" : "#8C5A3C",
+              }}>
+                <span style={{ fontSize: 9 }}>◈</span>
+                {dailyCallsUsed >= dailyLimit
+                  ? `Daily limit reached · Resets 12:00 AM`
+                  : `${dailyLimit - dailyCallsUsed} of ${dailyLimit} AI calls remaining today`}
+              </div>
+            </div>
+          )}
+
           {step === 2 && selectedDay && selectedWeek && (
             <Step2Describe day={selectedDay} week={selectedWeek} onNext={handleDescribeNext} onBack={() => setStep(1)} />
           )}
@@ -1050,6 +1062,24 @@ function EntryPageInner() {
 
           {step === 4 && selectedDay && selectedWeek && (
             <>
+              {/* Daily usage pill */}
+              {dailyLimit !== null && dailyCallsUsed !== null && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "4px 12px", borderRadius: 20,
+                    background: dailyCallsUsed >= dailyLimit ? "rgba(220,38,38,0.08)" : "rgba(140,90,60,0.08)",
+                    border: `1px solid ${dailyCallsUsed >= dailyLimit ? "rgba(220,38,38,0.2)" : "rgba(140,90,60,0.2)"}`,
+                    fontSize: 11, fontFamily: "var(--font-dm-mono)", fontWeight: 600,
+                    color: dailyCallsUsed >= dailyLimit ? "#DC2626" : "#8C5A3C",
+                  }}>
+                    <span style={{ fontSize: 9 }}>◈</span>
+                    {dailyCallsUsed >= dailyLimit
+                      ? `Daily limit reached · Resets 12:00 AM`
+                      : `${dailyLimit - dailyCallsUsed} of ${dailyLimit} AI calls remaining today`}
+                  </div>
+                </div>
+              )}
               {generateError && (
                 <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", fontSize: 13, color: "#DC2626" }}>
                   {generateError}

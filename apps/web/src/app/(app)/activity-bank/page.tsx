@@ -571,7 +571,7 @@ export default function ActivityBankPage() {
       {/* Floating selection bar */}
       {selectedIds.size > 0 && (
         <div style={{
-          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 60,
           display: "flex", alignItems: "center", justifyContent: "center",
           padding: "16px 24px",
           background: "var(--bg)",

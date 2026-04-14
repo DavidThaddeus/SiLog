@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { callAI } from "@/lib/ai-provider";
 
 export interface ExtractActivitiesRequest {
   rawDescription: string;
@@ -19,22 +20,29 @@ const MOCK_ACTIVITIES: ExtractActivitiesResponse = {
   ],
 };
 
+const hasAI = !!(
+  process.env.OPENAI_API_KEY ||
+  process.env.OPENAI_API_KEY_GPT4O ||
+  process.env.OPENAI_API_KEY_GPT4O_MINI ||
+  process.env.OPENROUTER_KEY_GEMINI ||
+  process.env.OPENROUTER_KEY_HAIKU ||
+  process.env.ANTHROPIC_API_KEY ||
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY
+);
+
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth instanceof NextResponse) return auth;
 
   const { rawDescription, dayName }: ExtractActivitiesRequest = await req.json();
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json(MOCK_ACTIVITIES);
+  if (!hasAI) return NextResponse.json(MOCK_ACTIVITIES);
 
   try {
-    const { Anthropic } = await import("@anthropic-ai/sdk");
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 600,
+    const result = await callAI({
+      maxTokens: 600,
+      temperature: 0.1,
+      jsonMode: true,
       messages: [
         {
           role: "user",
@@ -57,7 +65,7 @@ Rules:
       ],
     });
 
-    const raw = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    const raw = result.text.trim();
     const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     const parsed: ExtractActivitiesResponse = JSON.parse(cleaned);
     return NextResponse.json(parsed);

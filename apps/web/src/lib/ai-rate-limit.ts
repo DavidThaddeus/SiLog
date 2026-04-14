@@ -5,20 +5,20 @@ import { NextResponse } from "next/server";
  * Daily AI call limits.
  * Free users: 3 calls/day.
  * Paid users: 5 calls/day.
- * Day boundary: resets at 01:00 UTC (= 02:00 WAT for Nigerian students).
+ * Day boundary: resets at 00:00 WAT (= 23:00 UTC the previous day).
  */
 export const DAILY_LIMIT_PAID = 5;
 export const DAILY_LIMIT_FREE = 3;
 
 /**
- * Returns the current "day key" (YYYY-MM-DD) where the day boundary is 01:00 UTC.
- * Before 01:00 UTC, we're still in the previous calendar day's period.
+ * Returns the current "day key" (YYYY-MM-DD) in Nigeria time (WAT = UTC+1).
+ * Adding 1 hour to UTC gives the local Nigerian date, so midnight WAT = reset boundary.
  */
 function getDayKey(): string {
   const now = new Date();
-  // Shift back by 1 hour so the period boundary sits at 01:00 UTC
-  const adjusted = new Date(now.getTime() - 60 * 60 * 1000);
-  return adjusted.toISOString().split("T")[0];
+  // Shift forward by 1 hour to get WAT (UTC+1)
+  const wat = new Date(now.getTime() + 60 * 60 * 1000);
+  return wat.toISOString().split("T")[0];
 }
 
 type CheckResult =
@@ -53,7 +53,7 @@ export async function checkDailyLimit(
           {
             error: "daily_limit_reached",
             message: isPaid
-              ? `You've used all ${DAILY_LIMIT_PAID} AI calls for today. Resets at 1:00 AM UTC.`
+              ? `You've used all ${DAILY_LIMIT_PAID} AI calls for today. Resets at midnight (12:00 AM Nigeria time).`
               : `Free plan allows ${DAILY_LIMIT_FREE} AI calls per day. Come back tomorrow or upgrade.`,
             limit,
             callsToday,

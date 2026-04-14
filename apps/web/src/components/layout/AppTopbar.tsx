@@ -35,6 +35,22 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 1024 : true
   );
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> });
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+  async function handleInstall() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -66,7 +82,7 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
   return (
     <header
       style={{
-        position: "fixed", top: 0, left: leftOffset, right: 0, zIndex: 50, height: 56,
+        position: "fixed", top: 0, left: leftOffset, right: 0, zIndex: 80, height: 56,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 16px",
         background: "var(--bg)",
@@ -190,6 +206,25 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
             }} />
             <span className="hidden sm:inline">Saved locally</span>
           </div>
+        )}
+
+        {/* PWA install button — only shown when browser signals app is installable */}
+        {installPrompt && (
+          <button
+            onClick={handleInstall}
+            title="Install Silog to your device"
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+              fontFamily: "var(--font-dm-mono)", letterSpacing: "0.04em",
+              background: "rgba(140,90,60,0.1)",
+              border: "1px solid rgba(140,90,60,0.3)",
+              color: "#8C5A3C", cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ fontSize: 13 }}>⬇</span>
+            <span className="hidden sm:inline">Install App</span>
+          </button>
         )}
 
         {/* Theme toggle */}

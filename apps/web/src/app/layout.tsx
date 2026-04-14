@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./sw-register";
@@ -21,6 +21,12 @@ const dmMono = DM_Mono({
   variable: "--font-dm-mono",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "SiLog — SIWES Logbook Assistant",

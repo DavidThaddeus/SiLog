@@ -210,6 +210,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: P
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
+              onClick={() => { if (isMobile) onMobileClose(); }}
               style={{
                 display: "flex",
                 alignItems: "center",
