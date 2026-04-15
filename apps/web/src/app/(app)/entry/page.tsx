@@ -1038,8 +1038,8 @@ function EntryPageInner() {
               }}>
                 <span style={{ fontSize: 9 }}>◈</span>
                 {dailyCallsUsed >= dailyLimit
-                  ? `Daily limit reached · Resets 12:00 AM`
-                  : `${dailyLimit - dailyCallsUsed} of ${dailyLimit} AI calls remaining today`}
+                  ? `Limit reached · Come back at 12:00 AM Nigeria time`
+                  : `${dailyLimit - dailyCallsUsed} of ${dailyLimit} AI logs remaining today`}
               </div>
             </div>
           )}

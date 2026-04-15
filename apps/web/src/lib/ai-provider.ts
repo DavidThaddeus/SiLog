@@ -175,7 +175,7 @@ async function callOpenAI(params: {
       },
       body: JSON.stringify({
         model,
-        max_tokens: maxTokens,
+        max_completion_tokens: maxTokens,
         temperature,
         ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
         messages: openaiMessages,

@@ -19,7 +19,8 @@ export default function DashboardPage() {
     let total = 0, aiGenerated = 0, manuallyEdited = 0;
     for (const w of weeks) {
       for (const d of w.days) {
-        if (d.status === "auto-filled") { total++; aiGenerated++; }
+        if (d.status === "filled") { total++; aiGenerated++; }
+        else if (d.status === "auto-filled") { total++; aiGenerated++; }
         else if (d.status === "manually-edited") { total++; manuallyEdited++; }
       }
     }
