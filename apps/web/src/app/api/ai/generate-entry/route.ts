@@ -434,13 +434,11 @@ export async function POST(req: NextRequest) {
 
   // Check a provider is configured — fall back to mock if neither key is set
   const hasAI = !!(
-    process.env.OPENAI_API_KEY ||
-    process.env.OPENAI_API_KEY_GPT4O ||
-    process.env.OPENAI_API_KEY_GPT4O_MINI ||
-    process.env.OPENROUTER_KEY_GEMINI ||
+    process.env.OPENAI_API_KEY_GPT54 ||
+    process.env.OPENAI_API_KEY_GPT54_MINI ||
+    process.env.OPENROUTER_KEY_GPT54_MINI ||
     process.env.OPENROUTER_KEY_HAIKU ||
-    process.env.ANTHROPIC_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    process.env.ANTHROPIC_API_KEY
   );
   if (!hasAI) return NextResponse.json(buildFallback(body));
 
@@ -562,7 +560,7 @@ progressChartEntry: The column header in the physical logbook — ALL CAPS, maxi
   try {
     const { callAI } = await import("@/lib/ai-provider");
     const result = await callAI({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }], maxTokens: 4000, temperature: 0.2, jsonMode: true });
-    console.log(`[ai/generate-entry] ✓ model=${result.usage.model} in=${result.usage.input} out=${result.usage.output}`);
+    console.log(`[ai/generate-entry] ✓ model=${result.usage.model} in=${result.usage.input} out=${result.usage.output} cost=$${result.usage.cost.toFixed(5)}${result.usage.fallbackChain ? ` fallback-from=${result.usage.fallbackChain.join("→")}` : ""}`);
     const cleaned = result.text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     const parsed: GenerateEntryResponse = JSON.parse(cleaned);
 
