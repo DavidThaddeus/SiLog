@@ -89,6 +89,63 @@ export async function incrementDailyLimit(
   }
 }
 
+/**
+ * Check whether the user has already run a defense session today (limit: 1/day).
+ * Uses a separate pair of columns: defense_sessions_today + defense_sessions_date.
+ * If those columns don't exist yet, the call is allowed through.
+ */
+export async function checkDefenseLimit(
+  userId: string,
+  adminClient: SupabaseClient
+): Promise<{ blocked: boolean; response?: NextResponse }> {
+  const dayKey = getDayKey();
+  try {
+    const { data } = await adminClient
+      .from("profiles")
+      .select("defense_sessions_today, defense_sessions_date")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const sessionsToday =
+      data?.defense_sessions_date === dayKey ? (data?.defense_sessions_today ?? 0) : 0;
+
+    if (sessionsToday >= 1) {
+      return {
+        blocked: true,
+        response: NextResponse.json(
+          {
+            error: "defense_daily_limit",
+            message: "You can only run 1 Defense Prep session per day. Come back tomorrow.",
+          },
+          { status: 429 }
+        ),
+      };
+    }
+    return { blocked: false };
+  } catch {
+    // Column doesn't exist yet — allow through
+    return { blocked: false };
+  }
+}
+
+/**
+ * Increment the defense session counter (best-effort, won't block if column missing).
+ */
+export async function incrementDefenseLimit(
+  userId: string,
+  adminClient: SupabaseClient
+): Promise<void> {
+  const dayKey = getDayKey();
+  try {
+    await adminClient
+      .from("profiles")
+      .update({ defense_sessions_today: 1, defense_sessions_date: dayKey })
+      .eq("id", userId);
+  } catch {
+    // Best-effort
+  }
+}
+
 /** Create the admin Supabase client (service role — bypasses RLS) */
 export function makeAdminClient(): SupabaseClient {
   return createClient(

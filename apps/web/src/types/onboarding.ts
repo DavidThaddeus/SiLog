@@ -9,8 +9,10 @@ export interface OnboardingData {
   companyName: string;
   companyDepartment: string; // e.g. "IT Department", "Finance & Accounts"
   industry: string;
-  // Q4
-  logbookTemplateId: string;
+  companyDescription: string;   // What the company does (2-3 sentences)
+  myRoleDescription: string;    // What the student's role is about
+  // Q4 — Technical notes length preference (replaces school template selection)
+  notesLengthPreference: "short" | "long"; // short=1-3 pages (250-350 words), long=4-5 pages (400-450 words)
   // Q5
   startDate: string; // ISO date string YYYY-MM-DD
   siwesDuration: 3 | 6 | 12; // months → 13, 26, or 52 weeks
@@ -30,7 +32,7 @@ export const STEP_META = [
   { num: "01", label: "Name & University", phase: 1 },
   { num: "02", label: "Department & Level", phase: 1 },
   { num: "03", label: "Company & Industry", phase: 1 },
-  { num: "04", label: "Logbook Format", phase: 1 },
+  { num: "04", label: "Notes Length", phase: 1 },
   { num: "05", label: "Start Date & Supervisor", phase: 1 },
   { num: "06", label: "Attendance Days", phase: 2 },
   { num: "07", label: "Workload", phase: 2 },

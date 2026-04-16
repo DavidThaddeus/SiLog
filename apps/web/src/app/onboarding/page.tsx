@@ -86,6 +86,9 @@ export default function OnboardingPage() {
     // Best-effort: save extended columns (added via migration) — won't block if column missing
     await supabase.from("profiles").update({
       siwes_duration_months: data.siwesDuration ?? 6,
+      company_description: data.companyDescription ?? null,
+      role_description: data.myRoleDescription ?? null,
+      notes_length_preference: data.notesLengthPreference ?? "long",
     }).eq("id", user.id).then(() => {});
 
     // Fire welcome email — best effort, never blocks onboarding

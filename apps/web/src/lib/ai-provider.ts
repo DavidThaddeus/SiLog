@@ -42,18 +42,31 @@ const OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions";
 
 // ─── Cost table (USD per 1M tokens) ──────────────────────────────────────────
 
-const COST_TABLE: Record<string, { input: number; output: number }> = {
+const COST_TABLE: Record<string, { input: number; output: number; cacheWrite?: number; cacheRead?: number }> = {
   [GPT54_MODEL]:      { input: 2.50, output: 15.00 },
   [GPT54_MINI_MODEL]: { input: 0.75, output: 3.00  },
   [OR_GPT54_MINI]:    { input: 0.83, output: 3.30  }, // OpenRouter ~10% markup estimate
   [OR_HAIKU_MODEL]:   { input: 0.88, output: 4.40  }, // OpenRouter Haiku rate estimate
-  [ANTHROPIC_MODEL]:  { input: 0.80, output: 4.00  },
+  // Anthropic Haiku 4.5: input $0.80, cache write $1.00 (1.25×), cache read $0.08 (0.1×), output $4.00
+  [ANTHROPIC_MODEL]:  { input: 0.80, output: 4.00, cacheWrite: 1.00, cacheRead: 0.08 },
 };
 
-function calcCost(model: string, input: number, output: number): number {
+function calcCost(
+  model: string,
+  input: number,
+  output: number,
+  cacheWriteTokens = 0,
+  cacheReadTokens = 0,
+): number {
   const rates = COST_TABLE[model];
   if (!rates) return 0;
-  return (input / 1_000_000) * rates.input + (output / 1_000_000) * rates.output;
+  const billableInput = input - cacheWriteTokens - cacheReadTokens;
+  return (
+    (billableInput      / 1_000_000) * rates.input +
+    (cacheWriteTokens   / 1_000_000) * (rates.cacheWrite ?? rates.input * 1.25) +
+    (cacheReadTokens    / 1_000_000) * (rates.cacheRead  ?? rates.input * 0.10) +
+    (output             / 1_000_000) * rates.output
+  );
 }
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
@@ -73,7 +86,6 @@ export async function callAI(params: {
   const orHaikuKey   = process.env.OPENROUTER_KEY_HAIKU;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  // Build the ordered list of providers that have keys configured
   type Provider = { name: string; fn: () => Promise<AIResult> };
   const chain: Provider[] = [];
 
@@ -92,19 +104,19 @@ export async function callAI(params: {
   if (orGpt54Mini) {
     chain.push({
       name: OR_GPT54_MINI,
-      fn: () => callOpenRouter({ messages, system, maxTokens, apiKey: orGpt54Mini, model: OR_GPT54_MINI }),
+      fn: () => callOpenRouter({ messages, system, maxTokens, temperature, jsonMode, apiKey: orGpt54Mini, model: OR_GPT54_MINI }),
     });
   }
   if (orHaikuKey) {
     chain.push({
       name: OR_HAIKU_MODEL,
-      fn: () => callOpenRouter({ messages, system, maxTokens, apiKey: orHaikuKey, model: OR_HAIKU_MODEL }),
+      fn: () => callOpenRouter({ messages, system, maxTokens, temperature, jsonMode, apiKey: orHaikuKey, model: OR_HAIKU_MODEL }),
     });
   }
   if (anthropicKey) {
     chain.push({
       name: ANTHROPIC_MODEL,
-      fn: () => callAnthropic({ messages, system, maxTokens, apiKey: anthropicKey }),
+      fn: () => callAnthropic({ messages, system, maxTokens, temperature, jsonMode, apiKey: anthropicKey }),
     });
   }
 
@@ -116,7 +128,6 @@ export async function callAI(params: {
     );
   }
 
-  // Attempt each provider in order — automatically fall back on failure
   const attempted: string[] = [];
   for (const provider of chain) {
     try {
@@ -218,10 +229,12 @@ async function callOpenRouter(params: {
   messages: AIMessage[];
   system?: string;
   maxTokens: number;
+  temperature: number;
+  jsonMode: boolean;
   apiKey: string;
   model: string;
 }): Promise<AIResult> {
-  const { messages, system, maxTokens, apiKey, model } = params;
+  const { messages, system, maxTokens, temperature, jsonMode, apiKey, model } = params;
 
   const orMessages: { role: string; content: string }[] = [
     ...(system ? [{ role: "system", content: system }] : []),
@@ -243,6 +256,8 @@ async function callOpenRouter(params: {
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
+        temperature,
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
         messages: orMessages,
       }),
       signal: controller.signal,
@@ -277,27 +292,62 @@ async function callOpenRouter(params: {
   };
 }
 
-// ─── Direct Anthropic (emergency backup) ─────────────────────────────────────
+// ─── Direct Anthropic — with prompt caching ──────────────────────────────────
+//
+// The system prompt is marked cache_control: { type: "ephemeral" }.
+// Anthropic caches it for 5 minutes from the last hit.
+// First call in a window: cache WRITE (1.25× input price).
+// Any call within 5 min: cache READ (0.10× input price) — 90% cheaper.
 
 async function callAnthropic(params: {
   messages: AIMessage[];
   system?: string;
   maxTokens: number;
+  temperature: number;
+  jsonMode: boolean;
   apiKey: string;
 }): Promise<AIResult> {
   const { Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: params.apiKey });
 
+  // Anthropic has no native JSON mode — enforce via system prompt suffix
+  const systemText = params.jsonMode
+    ? (params.system
+        ? params.system + "\n\nCRITICAL: Return ONLY a valid JSON object. No markdown, no explanation, no code fences. Start your response with { and end with }."
+        : "Return ONLY a valid JSON object. No markdown, no explanation, no code fences.")
+    : params.system;
+
+  type CachedTextBlock = { type: "text"; text: string; cache_control: { type: "ephemeral" } };
+  const systemBlock: CachedTextBlock[] | undefined = systemText
+    ? [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }]
+    : undefined;
+
   const response = await client.messages.create({
     model: ANTHROPIC_MODEL,
     max_tokens: params.maxTokens,
-    ...(params.system ? { system: params.system } : {}),
+    temperature: params.temperature,
+    ...(systemBlock ? { system: systemBlock } : {}),
     messages: params.messages,
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const input = response.usage.input_tokens;
-  const output = response.usage.output_tokens;
+
+  const usage = response.usage as typeof response.usage & {
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  };
+  const input      = usage.input_tokens;
+  const output     = usage.output_tokens;
+  const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+  const cacheRead  = usage.cache_read_input_tokens     ?? 0;
+
+  const cost = calcCost(ANTHROPIC_MODEL, input, output, cacheWrite, cacheRead);
+
+  if (cacheWrite > 0 || cacheRead > 0) {
+    const saving = cacheRead > 0 ? ` | cache-read=${cacheRead} (saved ~${((cacheRead * 0.9) / 1_000_000 * 0.80).toFixed(5)} USD)` : "";
+    const write  = cacheWrite > 0 ? ` | cache-write=${cacheWrite}` : "";
+    console.log(`[ai-provider/anthropic] prompt-cache${write}${saving}`);
+  }
 
   return {
     text,
@@ -305,7 +355,7 @@ async function callAnthropic(params: {
       model: response.model,
       input,
       output,
-      cost: calcCost(ANTHROPIC_MODEL, input, output),
+      cost,
     },
   };
 }

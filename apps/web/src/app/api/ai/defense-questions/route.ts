@@ -60,13 +60,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ questions } as DefenseQuestionsResponse);
   }
 
-  // ── Daily rate limit ─────────────────────────────────────────────────────────
-  const { makeAdminClient, checkDailyLimit, incrementDailyLimit } = await import("@/lib/ai-rate-limit");
+  // ── Defense session limit: 1 per day ─────────────────────────────────────────
+  const { makeAdminClient, checkDefenseLimit, incrementDefenseLimit } = await import("@/lib/ai-rate-limit");
   const adminClient = makeAdminClient();
   const userId = (auth as { user: { id: string } }).user.id;
-  const rateLimit = await checkDailyLimit(userId, adminClient);
-  if (rateLimit.blocked) return rateLimit.response;
-  await incrementDailyLimit(userId, adminClient, (rateLimit as { callsToday: number }).callsToday);
+  const defenseLimit = await checkDefenseLimit(userId, adminClient);
+  if (defenseLimit.blocked) return defenseLimit.response!;
+  await incrementDefenseLimit(userId, adminClient);
 
   const weekContext = days
     .map((d: { dayName: string; progressChartEntry: string; keyActivities: string[]; technicalNotes: string; deptBridgeUsed: string }) =>

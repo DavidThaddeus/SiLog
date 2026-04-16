@@ -9,7 +9,7 @@ function validateOnboardingData(data: Partial<OnboardingData>): string[] {
   if (!data.level) errors.push("level is required");
   if (!data.companyName?.trim()) errors.push("companyName is required");
   if (!data.industry) errors.push("industry is required");
-  if (!data.logbookTemplateId) errors.push("logbookTemplateId is required");
+  if (!data.notesLengthPreference) errors.push("notesLengthPreference is required");
   if (!data.startDate) errors.push("startDate is required");
   if (!data.supervisorName?.trim()) errors.push("supervisorName is required");
   if (!data.attendanceDayNames?.length) errors.push("at least one attendance day is required");

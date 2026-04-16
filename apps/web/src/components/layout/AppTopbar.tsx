@@ -130,7 +130,7 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
       {/* Right side */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
 
-        {/* Welcome chip — hidden on mobile to save topbar space */}
+        {/* Welcome chip — hidden on mobile to keep topbar compact */}
         {firstName && (
           <div className="hidden sm:flex" style={{
             alignItems: "center", gap: 7,
@@ -152,10 +152,9 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
           </div>
         )}
 
-        {/* Plan badge — hidden on mobile, clickable → /pricing */}
+        {/* Plan badge — visible on all screen sizes, clickable → /pricing */}
         <button
           onClick={() => router.push("/pricing")}
-          className="hidden sm:block"
           style={{
             padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600,
             fontFamily: "var(--font-dm-mono)", letterSpacing: "0.04em",
@@ -208,11 +207,11 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
           </div>
         )}
 
-        {/* PWA install button — only shown when browser signals app is installable */}
+        {/* PWA install button — shown on all screen sizes when browser signals installable */}
         {installPrompt && (
           <button
             onClick={handleInstall}
-            title="Install Silog to your device"
+            title="Install SiLog to your device"
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -223,7 +222,7 @@ export function AppTopbar({ onToggleSidebar, onMobileMenuOpen, collapsed, mobile
             }}
           >
             <span style={{ fontSize: 13 }}>⬇</span>
-            <span className="hidden sm:inline">Install App</span>
+            <span>Install</span>
           </button>
         )}
 

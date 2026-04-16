@@ -335,12 +335,21 @@ function Step2Describe({ day, week, onNext, onBack }: {
             </div>
           )}
           <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
-          <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value)}
+          <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value.slice(0, 3000))}
+            maxLength={3000}
             placeholder={`Tell SiLog everything that happened today.\n\nExamples:\n• "I fixed 3 computers, replaced RAM on one, helped with printer on the 3rd floor, and configured 2 new staff email accounts"\n• "Today I worked on the ML model we're building — implemented gradient descent and tested it"\n• "I helped configure the router and they explained subnetting, also I relabelled some cables in the server room"`}
             style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: `1px solid ${isListening ? "rgba(220,38,38,0.3)" : "rgba(140,90,60,0.25)"}`, background: "var(--card)", fontSize: 13, lineHeight: 1.75, color: "var(--text)", resize: "vertical", fontFamily: "var(--font-sans)", outline: "none", transition: "border-color 0.2s" }}
           />
-          <div style={{ marginTop: 8, padding: "10px 14px", borderRadius: 8, background: "rgba(140,90,60,0.06)", fontSize: 11, color: "var(--text-muted)" }}>
-            <strong style={{ color: "#8C5A3C" }}>Tip:</strong> Include every task, even small ones. Busy days produce banked activities for your quiet days.
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+            <div style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(140,90,60,0.06)", fontSize: 11, color: "var(--text-muted)", flex: 1, marginRight: 8 }}>
+              <strong style={{ color: "#8C5A3C" }}>Tip:</strong> Include every task, even small ones. Busy days produce banked activities for your quiet days.
+            </div>
+            <div style={{
+              fontSize: 11, fontFamily: "var(--font-dm-mono)", flexShrink: 0,
+              color: raw.length >= 2800 ? (raw.length >= 3000 ? "#DC2626" : "#f59e0b") : "var(--text-muted)",
+            }}>
+              {raw.length}/3000
+            </div>
           </div>
         </div>
       )}
@@ -360,7 +369,7 @@ function Step2Describe({ day, week, onNext, onBack }: {
 
 // ─── Step 3: Confirm activities + Activity Bank ──────────────────────────────
 
-function Step3Activities({ day, week, activities, loading, nothingToday, bankedItems, initialBankIds = [], onNext, onBack }: {
+function Step3Activities({ day, week, activities, loading, nothingToday, bankedItems, initialBankIds = [], notesLengthMode, onToggleLength, onNext, onBack }: {
   day: DayEntry;
   week: WeekEntry;
   activities: string[];
@@ -368,6 +377,8 @@ function Step3Activities({ day, week, activities, loading, nothingToday, bankedI
   nothingToday: boolean;
   bankedItems: BankedActivity[];
   initialBankIds?: string[];
+  notesLengthMode: "short" | "long";
+  onToggleLength: () => void;
   onNext: (selectedForToday: string[], toBankTexts: string[], usedBankIds: string[]) => void;
   onBack: () => void;
 }) {
@@ -555,7 +566,30 @@ function Step3Activities({ day, week, activities, loading, nothingToday, bankedI
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "space-between" }}>
+      {/* Notes length mode toggle */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginTop: 20, padding: "12px 14px", borderRadius: 10,
+        border: "1px solid var(--border)", background: "var(--surface)",
+      }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text)" }}>
+            Notes length: <span style={{ color: "#8C5A3C" }}>{notesLengthMode === "short" ? "Short (250–350 words)" : "Long (400–450 words)"}</span>
+          </div>
+          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+            {notesLengthMode === "short" ? "1–3 pages · compact entry" : "4–5 pages · detailed entry"}
+          </div>
+        </div>
+        <button onClick={onToggleLength} style={{
+          padding: "5px 14px", borderRadius: 20, fontSize: 10, fontWeight: 600, cursor: "pointer",
+          border: "1px solid rgba(140,90,60,0.35)", background: "transparent",
+          color: "#8C5A3C", fontFamily: "var(--font-dm-mono)", letterSpacing: "0.04em",
+        }}>
+          Switch
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "space-between" }}>
         <button onClick={onBack} style={{ padding: "9px 20px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>
           ← Edit Description
         </button>
@@ -819,6 +853,11 @@ function EntryPageInner() {
   // Study materials (loaded once on mount)
   const [studyMaterialsText, setStudyMaterialsText] = useState<string>("");
 
+  // Notes length mode — default from profile, switchable before generation
+  const [notesLengthMode, setNotesLengthMode] = useState<"short" | "long">(
+    (profile.notesLengthPreference as "short" | "long") ?? "long"
+  );
+
   // ── Step 2 → 3: Extract activities ─────────────────────────
   const handleDescribeNext = async (raw: string, nothing: boolean, nothingR: string) => {
     setRawDescription(raw);
@@ -874,8 +913,13 @@ function EntryPageInner() {
       dayName: selectedDay?.dayName ?? "Monday",
       department: profile.department ?? "Industrial Mathematics",
       companyDepartment: profile.companyDepartment ?? "IT Department",
+      companyName: profile.companyName || undefined,
       industry: profile.industry ?? "Technology",
+      companyDescription: (profile as { companyDescription?: string }).companyDescription || undefined,
+      myRoleDescription: (profile as { myRoleDescription?: string }).myRoleDescription || undefined,
+      notesLengthPreference: notesLengthMode,
       studyFraming: profile.studyLogbookFraming ?? null,
+      personalStudyDescription: profile.personalStudyDescription || undefined,
       // On refine, never send nothingToday — the AI must see the instruction
       nothingToday: isRefine ? false : (nothingToday && !hasActivities),
       nothingReason: (isRefine || hasActivities) ? undefined : nothingReason,
@@ -1055,6 +1099,8 @@ function EntryPageInner() {
               nothingToday={nothingToday}
               bankedItems={activityBank.items}
               initialBankIds={preselectedBankIds}
+              notesLengthMode={notesLengthMode}
+              onToggleLength={() => setNotesLengthMode((m) => m === "short" ? "long" : "short")}
               onNext={handleActivitiesNext}
               onBack={() => preselectedBankIds.length > 0 ? setStep(1) : setStep(2)}
             />

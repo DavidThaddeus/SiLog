@@ -44,21 +44,25 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `Extract every distinct activity from this SIWES student's description of their ${dayName}.
+          content: `You are reading a SIWES student's informal description of their workday. Extract every distinct activity as a clear, complete phrase.
 
-Description:
+Student's ${dayName} description:
 """
 ${rawDescription}
 """
 
 Return a JSON object: { "activities": ["activity 1", "activity 2", ...] }
 
-Rules:
-- Each activity is a short phrase (1 sentence max), past tense
-- Extract EVERY distinct task mentioned, even minor ones
-- Do not combine separate activities
-- Do not add activities not mentioned
-- Return ONLY the JSON, no markdown`,
+STRICT RULES:
+- Each activity MUST be a complete, meaningful phrase that describes a real task (minimum 4 words each)
+- WRONG: "audit", "systems", "Mr Hassan", "fixes" — these are tiny word fragments, NOT activities
+- RIGHT: "Performed system audit and diagnostic fixes on company all-in-one computers", "Disassembled equipment to diagnose hardware faults", "Learnt about motherboard components and their functions"
+- Describe WHAT was done, not just a noun. Always include an action verb.
+- Group closely related sub-tasks into one activity (e.g. disassembly + diagnosis = one activity)
+- Extract every distinct task mentioned — separate tasks that are genuinely different
+- Do not invent activities not mentioned in the description
+- Past tense throughout
+- Return ONLY the JSON, no markdown, no explanation`,
         },
       ],
     });
