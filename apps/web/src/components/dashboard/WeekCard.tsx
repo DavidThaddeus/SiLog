@@ -111,7 +111,9 @@ function WeekCardInner({ week }: Props) {
                 style={{
                   height: "100%",
                   width: `${completionPct}%`,
-                  background: completionPct === 100 ? "#4B2E2B" : "#8C5A3C",
+                  background: completionPct === 100
+                    ? "#FFFFFF"
+                    : "linear-gradient(90deg, #C87941, #E8A87C)",
                   borderRadius: 2,
                   transition: "width 0.4s ease",
                 }}

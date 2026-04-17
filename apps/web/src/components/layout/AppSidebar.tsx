@@ -5,7 +5,9 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useOnboardingStore } from "@/store/onboarding";
+import { useSubscriptionStore } from "@/store/subscription";
 import { supabase } from "@/lib/supabase";
+import { authHeaders } from "@/lib/auth-fetch";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "▦", num: "01" },
@@ -42,6 +44,23 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: P
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  const callsToday = useSubscriptionStore((s) => s.callsToday);
+  const dailyLimit = useSubscriptionStore((s) => s.dailyLimit);
+
+  // Re-fetch daily usage on every page navigation so the counter is always fresh
+  useEffect(() => {
+    authHeaders().then((headers) =>
+      fetch("/api/ai/usage", { headers })
+        .then((r) => r.json())
+        .then((d) => {
+          if (typeof d.callsToday === "number" && typeof d.dailyLimit === "number") {
+            useSubscriptionStore.getState().setDailyUsage(d.callsToday, d.dailyLimit);
+          }
+        })
+        .catch(() => {})
+    );
+  }, [pathname]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -266,6 +285,50 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: P
           );
         })}
       </nav>
+
+      {/* Daily limit status — only shown when expanded */}
+      {!collapsed && callsToday !== null && dailyLimit !== null && (
+        <div style={{ padding: "0 14px 12px" }}>
+          <div style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: callsToday >= dailyLimit
+              ? "rgba(220,38,38,0.12)"
+              : "rgba(255,255,255,0.05)",
+            border: `1px solid ${callsToday >= dailyLimit ? "rgba(220,38,38,0.25)" : "rgba(255,255,255,0.08)"}`,
+          }}>
+            <div style={{
+              fontSize: 9, fontFamily: "var(--font-dm-mono)", fontWeight: 700,
+              letterSpacing: "0.1em", textTransform: "uppercase",
+              color: "rgba(255,255,255,0.3)", marginBottom: 5,
+            }}>
+              AI Logs Today
+            </div>
+            {callsToday >= dailyLimit ? (
+              <div style={{ fontSize: 11, color: "#F87171", fontWeight: 500 }}>
+                Limit reached · Resets 12:00 AM
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, color: "white", fontWeight: 600, marginBottom: 6 }}>
+                  {dailyLimit - callsToday} of {dailyLimit} remaining
+                </div>
+                <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.1)", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${(callsToday / dailyLimit) * 100}%`,
+                    background: callsToday / dailyLimit >= 0.67
+                      ? "linear-gradient(90deg, #f59e0b, #ef4444)"
+                      : "linear-gradient(90deg, #8C5A3C, #B8805F)",
+                    borderRadius: 2,
+                    transition: "width 0.4s ease",
+                  }} />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* User chip */}
       <div

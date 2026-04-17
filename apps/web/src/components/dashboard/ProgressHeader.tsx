@@ -96,7 +96,9 @@ export function ProgressHeader() {
           style={{
             height: "100%",
             width: `${pct}%`,
-            background: "linear-gradient(90deg, #4B2E2B, #8C5A3C)",
+            background: pct >= 100
+              ? "white"
+              : "linear-gradient(90deg, #C87941, #E8A87C)",
             borderRadius: 3,
             transition: "width 0.8s ease",
           }}

@@ -335,8 +335,8 @@ function Step2Describe({ day, week, onNext, onBack }: {
             </div>
           )}
           <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
-          <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value.slice(0, 3000))}
-            maxLength={3000}
+          <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value.slice(0, 600))}
+            maxLength={600}
             placeholder={`Tell SiLog everything that happened today.\n\nExamples:\n• "I fixed 3 computers, replaced RAM on one, helped with printer on the 3rd floor, and configured 2 new staff email accounts"\n• "Today I worked on the ML model we're building — implemented gradient descent and tested it"\n• "I helped configure the router and they explained subnetting, also I relabelled some cables in the server room"`}
             style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: `1px solid ${isListening ? "rgba(220,38,38,0.3)" : "rgba(140,90,60,0.25)"}`, background: "var(--card)", fontSize: 13, lineHeight: 1.75, color: "var(--text)", resize: "vertical", fontFamily: "var(--font-sans)", outline: "none", transition: "border-color 0.2s" }}
           />
@@ -346,9 +346,9 @@ function Step2Describe({ day, week, onNext, onBack }: {
             </div>
             <div style={{
               fontSize: 11, fontFamily: "var(--font-dm-mono)", flexShrink: 0,
-              color: raw.length >= 2800 ? (raw.length >= 3000 ? "#DC2626" : "#f59e0b") : "var(--text-muted)",
+              color: raw.length >= 550 ? (raw.length >= 600 ? "#DC2626" : "#f59e0b") : "var(--text-muted)",
             }}>
-              {raw.length}/3000
+              {raw.length}/600
             </div>
           </div>
         </div>
@@ -799,12 +799,15 @@ function EntryPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch daily usage on mount so user sees remaining calls before generating
+  // Fetch daily usage on mount — writes into shared store so sidebar stays in sync
   useEffect(() => {
     authHeaders().then((headers) =>
       fetch("/api/ai/usage", { headers }).then((r) => r.json()).then((d) => {
-        if (typeof d.callsToday === "number") setDailyCallsUsed(d.callsToday);
-        if (typeof d.dailyLimit === "number") setDailyLimit(d.dailyLimit);
+        if (typeof d.callsToday === "number" && typeof d.dailyLimit === "number") {
+          useSubscriptionStore.getState().setDailyUsage(d.callsToday, d.dailyLimit);
+          setDailyCallsUsed(d.callsToday);
+          setDailyLimit(d.dailyLimit);
+        }
       }).catch(() => {})
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -943,9 +946,12 @@ function EntryPageInner() {
       if (res.status === 429) {
         try {
           const errData = await res.json();
-          if (typeof errData?.limit === "number") setDailyLimit(errData.limit);
-          if (typeof errData?.callsToday === "number") setDailyCallsUsed(errData.callsToday);
-          setGenerateError(`You've used all ${errData?.limit ?? dailyLimit ?? ""} AI calls for today. Come back at 12:00 AM Nigeria time.`);
+          const lim = typeof errData?.limit === "number" ? errData.limit : dailyLimit;
+          const used = typeof errData?.callsToday === "number" ? errData.callsToday : lim;
+          if (lim !== null) setDailyLimit(lim);
+          if (used !== null) setDailyCallsUsed(used);
+          if (lim !== null && used !== null) useSubscriptionStore.getState().setDailyUsage(used, lim);
+          setGenerateError(`You've used all ${lim ?? ""} AI calls for today. Come back at 12:00 AM Nigeria time.`);
         } catch {
           setGenerateError("You've reached today's AI generation limit. Come back at 12:00 AM Nigeria time.");
         }
@@ -974,7 +980,14 @@ function EntryPageInner() {
       if (typeof meta._generationsUsed === "number") {
         useSubscriptionStore.getState().setGenerationsUsed(meta._generationsUsed);
       }
-      if (typeof meta._callsToday === "number") setDailyCallsUsed(meta._callsToday);
+      if (typeof meta._callsToday === "number") {
+        setDailyCallsUsed(meta._callsToday);
+        // Prefer value from response; fall back to local state then store — ensures store always updates
+        const lim = typeof meta._dailyLimit === "number"
+          ? meta._dailyLimit
+          : (dailyLimit ?? useSubscriptionStore.getState().dailyLimit);
+        if (lim !== null) useSubscriptionStore.getState().setDailyUsage(meta._callsToday, lim);
+      }
       if (typeof meta._dailyLimit === "number") setDailyLimit(meta._dailyLimit);
     } catch {
       // noop, spinner stays

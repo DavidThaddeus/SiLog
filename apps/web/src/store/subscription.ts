@@ -11,6 +11,8 @@ interface SubscriptionStore {
   isFullPayment: boolean;
   generationsUsed: number;
   readOnly: boolean;
+  callsToday: number | null;
+  dailyLimit: number | null;
   setSubscription: (
     status: "free" | "paid",
     expiresAt: string | null,
@@ -21,6 +23,7 @@ interface SubscriptionStore {
   markPaid: (expiresAt: string | null, isFullPayment: boolean, subscribedAt?: string | null) => void;
   setGenerationsUsed: (n: number) => void;
   setReadOnly: (v: boolean) => void;
+  setDailyUsage: (callsToday: number, dailyLimit: number) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionStore>()((set) => ({
@@ -30,10 +33,13 @@ export const useSubscriptionStore = create<SubscriptionStore>()((set) => ({
   isFullPayment: false,
   generationsUsed: 0,
   readOnly: false,
+  callsToday: null,
+  dailyLimit: null,
   setSubscription: (status, expiresAt, generationsUsed = 0, isFullPayment = false, subscribedAt = null) =>
     set({ status, expiresAt, generationsUsed, isFullPayment, subscribedAt }),
   markPaid: (expiresAt, isFullPayment, subscribedAt = new Date().toISOString()) =>
     set({ status: "paid", expiresAt, isFullPayment, readOnly: false, subscribedAt }),
   setGenerationsUsed: (n) => set({ generationsUsed: n }),
   setReadOnly: (v) => set({ readOnly: v }),
+  setDailyUsage: (callsToday, dailyLimit) => set({ callsToday, dailyLimit }),
 }));

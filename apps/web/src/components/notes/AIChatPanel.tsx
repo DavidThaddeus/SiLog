@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { authHeaders } from "@/lib/auth-fetch";
+import { useSubscriptionStore } from "@/store/subscription";
 
 interface Message {
   id: string;
@@ -22,9 +23,10 @@ interface Props {
   currentNotes: string;
   dayName: string;
   onApplySuggestion: (text: string) => void;
+  notesLengthMode?: "short" | "long";
 }
 
-export function AIChatPanel({ currentNotes, dayName, onApplySuggestion }: Props) {
+export function AIChatPanel({ currentNotes, dayName, onApplySuggestion, notesLengthMode = "long" }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -36,12 +38,17 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion }: Props)
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const callsToday = useSubscriptionStore((s) => s.callsToday);
+  const dailyLimit = useSubscriptionStore((s) => s.dailyLimit);
+  const limitReached = callsToday !== null && dailyLimit !== null && callsToday >= dailyLimit;
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || loading) return;
+    if (!text.trim() || loading || limitReached) return;
+
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: text };
     setMessages((m) => [...m, userMsg]);
     setInput("");
@@ -51,9 +58,30 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion }: Props)
       const res = await fetch("/api/ai/rewrite", {
         method: "POST",
         headers: await authHeaders(),
-        body: JSON.stringify({ instruction: text, currentNotes, dayName }),
+        body: JSON.stringify({ instruction: text, currentNotes, dayName, notesLengthPreference: notesLengthMode }),
       });
+
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        const lim = typeof errData?.limit === "number" ? errData.limit : dailyLimit;
+        const used = typeof errData?.callsToday === "number" ? errData.callsToday : lim;
+        if (lim !== null && used !== null) useSubscriptionStore.getState().setDailyUsage(used, lim);
+        setMessages((m) => [...m, {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          content: `You've used all ${lim ?? ""} AI calls for today. Come back at 12:00 AM Nigeria time.`,
+        }]);
+        setLoading(false);
+        return;
+      }
+
       const data = await res.json();
+
+      // Update daily usage in shared store so sidebar stays in sync
+      if (typeof data._callsToday === "number" && typeof data._dailyLimit === "number") {
+        useSubscriptionStore.getState().setDailyUsage(data._callsToday, data._dailyLimit);
+      }
+
       setMessages((m) => [
         ...m,
         {
@@ -251,7 +279,7 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion }: Props)
           <button
             key={p}
             onClick={() => sendMessage(p)}
-            disabled={loading}
+            disabled={loading || limitReached}
             style={{
               padding: "4px 10px",
               borderRadius: 20,
@@ -280,8 +308,9 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion }: Props)
       >
         <textarea
           rows={2}
-          placeholder="Ask the AI to change anything…"
+          placeholder={limitReached ? "Daily limit reached · Come back at 12:00 AM" : "Ask the AI to change anything…"}
           value={input}
+          disabled={limitReached}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -304,7 +333,7 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion }: Props)
         />
         <button
           onClick={() => sendMessage(input)}
-          disabled={!input.trim() || loading}
+          disabled={!input.trim() || loading || limitReached}
           style={{
             padding: "0 14px",
             borderRadius: 8,

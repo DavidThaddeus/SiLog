@@ -5,7 +5,8 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth instanceof NextResponse) return auth;
 
-  const { instruction, currentNotes, dayName } = await req.json();
+  const { instruction, currentNotes, dayName, notesLengthPreference } = await req.json();
+  const isShortNotes = notesLengthPreference === "short";
 
   const hasAI = !!(process.env.OPENAI_API_KEY_GPT54 || process.env.OPENAI_API_KEY_GPT54_MINI || process.env.OPENROUTER_KEY_GPT54_MINI || process.env.OPENROUTER_KEY_HAIKU || process.env.ANTHROPIC_API_KEY);
   if (!hasAI) {
@@ -16,17 +17,20 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Daily rate limit ─────────────────────────────────────────────────────────
-  const { makeAdminClient, checkDailyLimit, incrementDailyLimit } = await import("@/lib/ai-rate-limit");
+  const { makeAdminClient, checkDailyLimit, incrementDailyLimit, DAILY_LIMIT_FREE, DAILY_LIMIT_PAID } = await import("@/lib/ai-rate-limit");
   const adminClient = makeAdminClient();
   const userId = (auth as { user: { id: string } }).user.id;
   const rateLimit = await checkDailyLimit(userId, adminClient);
   if (rateLimit.blocked) return rateLimit.response;
-  await incrementDailyLimit(userId, adminClient, (rateLimit as { callsToday: number }).callsToday);
+  const dailyCheck = rateLimit as { callsToday: number; isPaid: boolean };
+  await incrementDailyLimit(userId, adminClient, dailyCheck.callsToday);
+  const newCallsToday = dailyCheck.callsToday + 1;
+  const dailyLimit = dailyCheck.isPaid ? DAILY_LIMIT_PAID : DAILY_LIMIT_FREE;
 
   try {
     const { callAI } = await import("@/lib/ai-provider");
     const result = await callAI({
-      maxTokens: 2000,
+      maxTokens: isShortNotes ? 450 : 600,
       messages: [{
         role: "user",
         content: `You are an expert SIWES logbook editor for Nigerian university students.
@@ -52,6 +56,8 @@ Rules:
       explanation: "Here is the revised version based on your instruction:",
       rewritten: result.text || currentNotes,
       _usage: result.usage,
+      _callsToday: newCallsToday,
+      _dailyLimit: dailyLimit,
     });
   } catch (err) {
     console.error("[ai/rewrite]", err);

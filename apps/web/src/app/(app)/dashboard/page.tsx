@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardStore } from "@/store/dashboard";
 import { ProgressHeader } from "@/components/dashboard/ProgressHeader";
@@ -14,20 +14,7 @@ export default function DashboardPage() {
 
   useInitWeeks();
 
-  // Single pass over all days — avoids 3× flatMap/filter in render
-  const stats = useMemo(() => {
-    let total = 0, aiGenerated = 0, manuallyEdited = 0;
-    for (const w of weeks) {
-      for (const d of w.days) {
-        if (d.status === "filled") { total++; aiGenerated++; }
-        else if (d.status === "auto-filled") { total++; aiGenerated++; }
-        else if (d.status === "manually-edited") { total++; manuallyEdited++; }
-      }
-    }
-    return { total, aiGenerated, manuallyEdited };
-  }, [weeks]);
-
-  // Restore scroll position to the last-viewed week when returning from notes/entry
+// Restore scroll position to the last-viewed week when returning from notes/entry
   useEffect(() => {
     if (expandedWeekNumber == null || weeks.length === 0) return;
     const el = document.getElementById(`week-${expandedWeekNumber}`);
@@ -106,66 +93,6 @@ export default function DashboardPage() {
         {/* Right rail — on mobile appears FIRST (order-1), on desktop sticky sidebar */}
         <div className="lg:order-2 order-1 lg:sticky lg:top-[72px]" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <ActivityBankWidget />
-
-          {/* Quick stats */}
-          <div
-            style={{
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              background: "var(--bg)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "14px 18px 12px",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-dm-mono)",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "var(--text)",
-                }}
-              >
-                Quick Stats
-              </span>
-            </div>
-            <div style={{ padding: "14px 18px" }}>
-              {[
-                { label: "Total entries",   value: stats.total },
-                { label: "AI-generated",    value: stats.aiGenerated },
-                { label: "Manually edited", value: stats.manuallyEdited },
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "6px 0",
-                    borderBottom: "1px solid var(--border)",
-                  }}
-                >
-                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{label}</span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-dm-mono)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "var(--text)",
-                    }}
-                  >
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

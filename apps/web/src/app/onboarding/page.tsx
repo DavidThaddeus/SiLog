@@ -91,6 +91,15 @@ export default function OnboardingPage() {
       notes_length_preference: data.notesLengthPreference ?? "long",
     }).eq("id", user.id).then(() => {});
 
+    // Clear any existing logbook data for this user — onboarding always starts fresh.
+    // This prevents old entries from a previous session or re-onboard from bleeding through.
+    await supabase.from("user_data").delete().eq("user_id", user.id).then(() => {});
+
+    // Clear the local-first caches so the dashboard generates new empty weeks
+    const { clearLocalData, clearOfflineSnapshot } = await import("@/lib/offline-cache");
+    clearLocalData(user.id);
+    clearOfflineSnapshot(user.id);
+
     // Fire welcome email — best effort, never blocks onboarding
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {

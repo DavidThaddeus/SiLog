@@ -1,55 +1,84 @@
 "use client";
 
 import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
 
 /**
  * Renders logbook technicalNotes text with:
- * - <u>TEXT</u> → actual underlined spans (headings)
+ * - Markdown: numbered lists, bullets, bold, sub-items
+ * - <u>TEXT</u> → underlined headings (via rehype-raw)
+ * - $equation$ / $$equation$$ → rendered via KaTeX
  * - DIAGRAM SUGGESTION: → visually distinct dashed box
- * - Line breaks preserved
  */
 
-function renderLine(line: string, key: number): React.ReactNode {
-  // Split on <u>...</u> tags (case-insensitive, handles multiword)
-  const parts = line.split(/(<u>[\s\S]*?<\/u>)/i);
-  if (parts.length === 1) return line;
-  return (
-    <React.Fragment key={key}>
-      {parts.map((part, i) => {
-        const match = part.match(/^<u>([\s\S]*?)<\/u>$/i);
-        if (match) {
-          return (
-            <span key={i} style={{ textDecoration: "underline", fontWeight: 600 }}>
-              {match[1]}
-            </span>
-          );
-        }
-        return part;
-      })}
-    </React.Fragment>
-  );
-}
-
-function renderMainText(text: string): React.ReactNode {
-  const lines = text.split("\n");
-  return lines.map((line, i) => (
-    <React.Fragment key={i}>
-      {renderLine(line, i)}
-      {i < lines.length - 1 && "\n"}
-    </React.Fragment>
-  ));
+/** Force each (i)(ii)(iii) sub-item into its own paragraph before rendering */
+function preprocessText(text: string): string {
+  return text
+    // Double newline before every (i)(ii)(iii) that appears mid-line — markdown needs \n\n for a new paragraph
+    .replace(/([^\n])\s+(\([ivxIVX]+\))/g, "$1\n\n$2");
 }
 
 export function LogbookText({ text }: { text: string }) {
   const diagIdx = text.search(/DIAGRAM SUGGESTION:/i);
-  const mainText = diagIdx !== -1 ? text.slice(0, diagIdx).trimEnd() : text;
+  const rawMain = diagIdx !== -1 ? text.slice(0, diagIdx).trimEnd() : text;
+  const mainText = preprocessText(rawMain);
   const diagText = diagIdx !== -1 ? text.slice(diagIdx) : null;
 
   return (
     <>
-      <div style={{ whiteSpace: "pre-line" }}>
-        {renderMainText(mainText)}
+      <div className="logbook-text">
+        <ReactMarkdown
+          remarkPlugins={[remarkMath]}
+          rehypePlugins={[rehypeKatex, rehypeRaw]}
+          components={{
+            // Paragraphs — indent (i)(ii)(iii) sub-item lines
+            p: ({ children }) => {
+              const firstText = React.Children.toArray(children)
+                .map(c => typeof c === "string" ? c : "")
+                .join("");
+              if (/^\s*\([ivxIVX]+\)/.test(firstText)) {
+                return (
+                  <p style={{ margin: "2px 0 4px 24px", lineHeight: 1.75 }}>
+                    {children}
+                  </p>
+                );
+              }
+              return <p style={{ margin: "0 0 10px 0", lineHeight: 1.75 }}>{children}</p>;
+            },
+            // Ordered lists (1. 2. 3.)
+            ol: ({ children }) => (
+              <ol style={{ margin: "8px 0 10px 0", paddingLeft: 22, lineHeight: 1.75 }}>
+                {children}
+              </ol>
+            ),
+            // Unordered lists (-)
+            ul: ({ children }) => (
+              <ul style={{ margin: "8px 0 10px 0", paddingLeft: 22, lineHeight: 1.75 }}>
+                {children}
+              </ul>
+            ),
+            li: ({ children }) => (
+              <li style={{ marginBottom: 4 }}>{children}</li>
+            ),
+            // Bold
+            strong: ({ children }) => (
+              <strong style={{ fontWeight: 700 }}>{children}</strong>
+            ),
+            // Inline code (fallback for mono terms)
+            code: ({ children }) => (
+              <code style={{ fontFamily: "var(--font-dm-mono)", fontSize: "0.9em", background: "rgba(140,90,60,0.08)", padding: "1px 5px", borderRadius: 3 }}>
+                {children}
+              </code>
+            ),
+          }}
+        >
+          {mainText}
+        </ReactMarkdown>
       </div>
+
       {diagText && (
         <div
           style={{

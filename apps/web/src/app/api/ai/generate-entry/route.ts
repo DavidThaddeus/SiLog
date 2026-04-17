@@ -187,8 +187,10 @@ FORMAT 1 — DEFINITION-AND-EXPANSION (Learning concepts)
 → [Concept] is/involves... (definition in present tense, 2-3 sentences using The)
 → TRANSITION SENTENCE (CRITICAL): "During the session in the office, we were introduced to..." OR "During today's technical session, we learned..." OR "We were taken through..." (This bridges definition to personal office experience)
 → <u>Types/Key Components:</u>
-→ 1. [Type] <u>Definition:</u> ... <u>Applications:</u> (i)(ii)
-→ 2. [Next Type] (repeat)
+→ 1. [Type]: [definition — 1-2 sentences]. Applications:
+      (i) [first application]
+      (ii) [second application]
+→ 2. [Next Type]: (repeat same structure — NO <u> tags on Definition or Applications labels)
 → [Closing paragraph about workplace relevance — We focus]
 → [Academic bridge: 1-2 sentences, woven naturally]
 → DIAGRAM SUGGESTION
@@ -282,14 +284,16 @@ IMPORTANT: The user message contains an "ACADEMIC BRIDGE:" section with context-
 SPECIAL CASES
 ═══════════════════════════════════════════════════════
 
-PERSONAL LEARNING (YouTube, textbooks, online sources):
-Reframe as office-based:
-- "office": "During the session in the office, we were introduced to..."
-- "assigned": "Under supervisor direction, we were assigned to study [topic]..."
-- "research": "We were directed to conduct structured research into [topic]..."
+PERSONAL LEARNING (YouTube, textbooks, home study, online sources, personal study):
+NEVER write "personal study", "self-study", "I studied on my own", "studied at home", or any phrase implying the student learned outside of work.
+ALL learning happened in the office, taught by supervisors or conducted under workplace direction.
+Reframe as office-based instruction:
+- "During the technical session in the office, we were introduced to [topic]..."
+- "Under the direction of the supervising officer, we were taken through [topic]..."
+- "The supervising staff conducted a session on [topic], during which we learnt..."
 
 ABSENT/NOTHING DAY:
-Never blank. Generate realistic routine task or professional development entry. Frame as "We engaged in structured review of [topic] as part of professional development during the attachment period..." Still follow all rules. Progress Chart: "TECHNICAL DOCUMENTATION REVIEW AND SELF-STUDY"
+Never blank. Generate realistic routine task or professional development entry. Frame as "We engaged in structured review of [topic] as part of professional development during the attachment period..." Still follow all rules. Progress Chart: "TECHNICAL DOCUMENTATION REVIEW"
 
 PROGRESS CHART ENTRY:
 ALL CAPS noun phrase. Max 8 words. No "I" or "We".
@@ -303,7 +307,7 @@ YOUR TASK
 2. IDENTIFY KEYWORDS → pick FORMAT 1-5
 3. APPLY correct format structure
 4. USE person mix: We (45-50%) > The/Impersonal (35-40%) > I (5-8%)
-5. FOR FORMAT 1: After definition, ALWAYS transition with "During the session in the office, we..." or "We were taken through..." or "During this technical session, we learned..."
+5. FOR FORMAT 1: After definition, ALWAYS transition with "During the session in the office, we..." or "We were taken through..." or "During this technical session, we learned..." or  "on this day session, we learned..."
 6. FOLLOW all critical writing rules
 7. GENERATE complete entry
 
@@ -393,35 +397,17 @@ export async function POST(req: NextRequest) {
   const isNothingDay = nothingToday && !isRefine;
 
   const inputSection = isRefine
-    ? `The student wants to REFINE a previously generated logbook entry. The full context is below:
+    ? `REFINE: Rewrite the entry below per the user instruction. Keep what is correct, change only what is asked. All writing rules still apply.
 
-${rawDescription}
-
-YOUR JOB: Rewrite the logbook entry applying the USER INSTRUCTION exactly. Keep everything that is correct. Only change what the instruction asks. The result must still follow ALL writing rules: correct structural format, academic bridge, minimum 2 paragraphs, diagram suggestion at end, no em dashes, no AI patterns.`
+${rawDescription}`
     : isNothingDay
-    ? `The student had no specific activity assigned today. Reason given: "${nothingReason || "no formal assignment given"}".
-
-YOUR JOB: Invent a realistic, specific, and credible logbook entry for this day. Do NOT write generic filler. Use everything you know about the student:
-- They study ${department} at university
-- They are interning in the ${companyDepartment} of a ${industry} organisation
-- It is ${dayName}
-
-Generate an entry that a real student in this exact placement would plausibly have done on a quiet day. Draw from one of these options in order of preference:
-1. A routine support or maintenance task common in the ${companyDepartment} (e.g. equipment checks, data entry, documentation, assisting a colleague, filing, system monitoring)
-2. Structured self-directed study of a topic directly relevant to their placement and their ${department} course (framed as professional development during attachment, NOT as "I studied at home")
-3. A review or continuation of something that would naturally occur in a ${industry} setting
-
-The entry must still follow ALL writing rules: correct structural format, academic bridge from ${department}, minimum 2 paragraphs, diagram suggestion at the end. It must read as a genuine productive workday, not as "I had nothing to do."`
-    : `The student described their ${dayName} in casual, sometimes imprecise language (possibly via voice-to-text on mobile):
+    ? `No activity today. Reason: "${nothingReason || "no assignment given"}".
+Invent a realistic, plausible ${dayName} entry for a ${companyDepartment} intern (${department}, ${industry}). Use a routine task: maintenance, documentation, monitoring, or workplace-directed study. All writing rules apply — no filler.`
+    : `Student's ${dayName} input (may contain voice-to-text errors or informal language):
 """
 ${rawDescription}
 """
-
-IMPORTANT — MISTAKE CORRECTION: Before writing the entry, mentally correct any words that are:
-- Technically wrong or misused (e.g. "arrayed the cables" → "arranged/terminated the cables", "netwurk" → "network", "I fixed the water" → "resolved the cooling system issue")
-- Garbled by voice recognition (e.g. "cable termination asian" → "cable termination", "rj for five" → "RJ45")
-- Vague or informal (e.g. "did stuff with the computer" → identify the most likely technical task given the department and industry context)
-Use ONLY the corrected professional terms in the final entry. Never repeat the student's wrong word.`;
+Correct all technical errors, voice recognition mistakes, and vague terms before writing. Use only professional corrected terms in the entry.`;
 
 
   const studyFramingNote = studyFraming === "assigned"
@@ -441,15 +427,14 @@ ${studyMaterialsText.slice(0, 12_000)}
   // Build word-count instruction based on student's notes length preference
   const isShortNotes = notesLengthPreference === "short";
   const wordCountRule = isShortNotes
-    ? `8. LENGTH — Short notes mode (1-3 pages). Target 250–350 words in technicalNotes. Minimum 2 paragraphs. At least 3 named specific technical items. Numbered lists or sub-headings where the format calls for them. Do NOT flatten structured topics into plain prose, but keep paragraphs concise.`
-    : `8. LENGTH IS MANDATORY — Long notes mode (4-5 pages). The technicalNotes must be a FULL, DETAILED entry. Target 400–450 words. Minimum 3 paragraphs, at least 3 named specific technical items, numbered lists or sub-headings where the format calls for them. Use the structural format from Section 3 properly — if the topic has Types, list them with numbered items and (i)(ii) sub-points.`;
+    ? `8. LENGTH — Short notes mode. HARD MAXIMUM: 350 words in technicalNotes. DO NOT exceed 350 words. Target 250–300 words. Minimum 2 paragraphs. At least 3 named specific technical items. Numbered lists or sub-headings where the format calls for them. Stop writing the notes once you approach 300 words.`
+    : `8. LENGTH IS MANDATORY — Long notes mode. HARD MAXIMUM: 450 words in technicalNotes. DO NOT exceed 450 words. Target 400–450 words. Minimum 3 paragraphs, at least 3 named specific technical items, numbered lists or sub-headings where the format calls for them. Use the structural format from Section 3 properly — if the topic has Types, list them with numbered items and (i)(ii) sub-points.`;
   // Build student context section from profile
   const profileContext = [
-    companyName ? `- Company: ${companyName}` : "",
-    companyDescription ? `- What the company does: ${companyDescription}` : "",
+    companyDescription ? `- Company description: ${companyDescription}` : "",
     myRoleDescription ? `- Student's role: ${myRoleDescription}` : "",
     personalStudyDescription
-      ? `- Personal study topics (outside work): ${personalStudyDescription} — when the student mentions learning this personally, apply the Personal Learning Translation Rule (Section 4): reframe it as a session or directed study that happened at the office, using the studyFraming mode above.`
+      ? `- Personal study topics: ${personalStudyDescription} — reframe as office-directed per Section 4`
       : "",
   ].filter(Boolean).join("\n");
 
@@ -468,35 +453,24 @@ ${inputSection}
 
 ${bridgeInstruction}
 
-YOUR TASK: Generate a complete, professional SIWES logbook technical notes entry following ALL rules in the system prompt.
-
-SPECIFIC REQUIREMENTS FOR THIS ENTRY:
-0. CORRECT ANY MISTAKES FIRST — fix technically wrong words, voice-recognition errors, or vague terms before writing anything. Use only the corrected professional version in the entry.
-1. Choose the correct structural format from Section 3 (Five Structural Formats) based on the content type
-2. Write the UNDERLINED ALL-CAPS heading following Section 2 heading hierarchy — it must match the progressChartEntry exactly
-3. Mix first person I, first person We, and third person impersonal naturally (Section 1)
-4. Apply Personal Learning Translation Rule (Section 4) for anything that sounds like self-study — frame it as office-based
-5. Inject exactly ONE academic bridge from the ${department} bridge reference (Section 5) — 1-2 sentences only, woven naturally, not announced
-6. End with the mandatory DIAGRAM SUGGESTION (Section 7) — never skip it
-7. Check every sentence against the banned phrases list (Section 9) before writing it
+APPLY THESE RULES (full details in system prompt):
+- Structural format → Sec. 3 | Heading → Sec. 2, must match progressChartEntry exactly
+- Voice mix (I/We/impersonal) → Sec. 1 | Self-study → office-based → Sec. 4
+- ONE ${department} academic bridge, woven naturally, 1–2 sentences → Sec. 5
+- End with DIAGRAM SUGGESTION → Sec. 7 (mandatory, never skip)
+- No banned phrases → Sec. 9 | No em dashes | Sound human, not AI → Sec. 10
+- For any mathematical expressions or formulas, wrap inline in $...$ and block in $$...$$
 ${wordCountRule}
-9. CRITICAL — NO EM DASHES (—) anywhere in the body. Replace with a comma, "which", or a new sentence (Section 10)
-10. CRITICAL — Write like a real student, not an AI. Vary sentence lengths. Max one "Furthermore/Moreover/Additionally" per entry. Sound human (Section 10)
 
-Return ONLY a valid JSON object with exactly these four keys, no markdown, no explanation:
-{
-  "technicalNotes": "The full entry — UNDERLINED ALL-CAPS heading, minimum 2 paragraphs, academic bridge woven naturally, ends with DIAGRAM SUGGESTION",
-  "keyActivities": ["Short past-tense phrase 1", "Short past-tense phrase 2", "Short past-tense phrase 3"],
-  "progressChartEntry": "ALL-CAPS PHRASE MAX 8 WORDS — matches the heading in technicalNotes",
-  "deptBridgeUsed": "Name of the specific academic concept injected e.g. 'Graph Theory G=(V,E)' or 'ACID Properties of Database Transactions'"
-}
-
-keyActivities: 2 to 4 items. Each is a short past-tense phrase like "Carried out RJ45 cable termination using T568B standard" or "Participated in scheduled database backup procedure".
-progressChartEntry: The column header in the physical logbook — ALL CAPS, maximum 8 words, noun phrase, no "I" or "We".`;
+Return ONLY valid JSON, no markdown:
+{"technicalNotes":"full entry with heading, bridge woven in, ends with DIAGRAM SUGGESTION","keyActivities":["past-tense phrase 1","past-tense phrase 2"],"progressChartEntry":"ALL-CAPS MAX 8 WORDS","deptBridgeUsed":"specific concept name"}
+keyActivities: 2–4 short past-tense phrases. progressChartEntry: ALL CAPS noun phrase, max 8 words, no "I"/"We".`;
 
   try {
     const { callAI } = await import("@/lib/ai-provider");
-    const result = await callAI({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }], maxTokens: 4000, temperature: 0.2, jsonMode: true });
+    // Short: max 350 words (~473 tokens) + JSON overhead (~130) = 603 → ceiling 650
+    // Long:  max 450 words (~608 tokens) + JSON overhead (~130) = 738 → ceiling 800
+    const result = await callAI({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }], maxTokens: isShortNotes ? 650 : 800, temperature: 0.2, jsonMode: true });
     console.log(`[ai/generate-entry] ✓ model=${result.usage.model} in=${result.usage.input} out=${result.usage.output} cost=$${result.usage.cost.toFixed(5)}${result.usage.fallbackChain ? ` fallback-from=${result.usage.fallbackChain.join("→")}` : ""}`);
     const cleaned = result.text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     const parsed: GenerateEntryResponse = JSON.parse(cleaned);

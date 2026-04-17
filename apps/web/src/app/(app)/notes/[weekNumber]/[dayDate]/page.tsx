@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardStore } from "@/store/dashboard";
+import { useOnboardingStore } from "@/store/onboarding";
 import { generateMockWeeks, MOCK_ACTIVITY_BANK } from "@/lib/dashboard-mock";
 import { AIChatPanel } from "@/components/notes/AIChatPanel";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
@@ -387,6 +388,8 @@ export default function NotesPage({
   const { weekNumber, dayDate } = use(params);
   const router = useRouter();
   const { weeks, setWeeks, getDayEntry, getWeek } = useDashboardStore();
+  const { data: profile } = useOnboardingStore();
+  const notesLengthMode = (profile.notesLengthPreference as "short" | "long") ?? "long";
 
   const [tab, setTab] = useState<Tab>("day");
   const [chatNotes, setChatNotes] = useState("");
@@ -581,6 +584,7 @@ export default function NotesPage({
                   currentNotes={chatNotes}
                   dayName={day.dayName}
                   onApplySuggestion={handleApplySuggestion}
+                  notesLengthMode={notesLengthMode}
                 />
               </div>
             </div>

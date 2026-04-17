@@ -1,14 +1,16 @@
 /**
- * Unified AI provider — 5 backends in priority order:
+ * Unified AI provider — 6 backends in priority order:
  *
  * 1. OpenAI GPT-5.4          (OPENAI_API_KEY_GPT54)        → gpt-5.4-2026-03-05        (PRIMARY)
  * 2. OpenAI GPT-5.4-mini     (OPENAI_API_KEY_GPT54_MINI)   → gpt-5.4-mini-2026-03-17   (FALLBACK)
- * 3. OpenRouter GPT-5.4-mini (OPENROUTER_KEY_GPT54_MINI)   → openai/gpt-5.4-mini        (BACKUP)
- * 4. OpenRouter Haiku 4.5    (OPENROUTER_KEY_HAIKU)        → anthropic/claude-haiku-4.5 (BACKUP)
- * 5. Direct Anthropic Haiku  (ANTHROPIC_API_KEY)           → claude-haiku-4-5-20251001  (EMERGENCY)
+ * 3. OpenRouter GPT-5.4      (OPENROUTER_KEY_GPT54)        → openai/gpt-5.4             (BACKUP)
+ * 4. OpenRouter GPT-5.4-mini (OPENROUTER_KEY_GPT54_MINI)   → openai/gpt-5.4-mini        (BACKUP)
+ * 5. OpenRouter Haiku 4.5    (OPENROUTER_KEY_HAIKU)        → anthropic/claude-haiku-4.5 (BACKUP)
+ * 6. Direct Anthropic Haiku  (ANTHROPIC_API_KEY)           → claude-haiku-4-5-20251001  (EMERGENCY)
  *
  * Switch models by commenting/uncommenting keys in .env.local — no code changes ever needed.
  * If the active primary model fails at runtime, the system automatically falls back to the next available model.
+ * IMPORTANT: Restart the dev server after any .env.local change — Next.js caches env vars in memory.
  */
 
 export interface AIMessage {
@@ -33,6 +35,7 @@ export interface AIResult {
 
 const GPT54_MODEL      = "gpt-5.4-2026-03-05";
 const GPT54_MINI_MODEL = "gpt-5.4-mini-2026-03-17";
+const OR_GPT54_MODEL   = "openai/gpt-5.4";
 const OR_GPT54_MINI    = "openai/gpt-5.4-mini";
 const OR_HAIKU_MODEL   = "anthropic/claude-haiku-4.5";
 const ANTHROPIC_MODEL  = "claude-haiku-4-5-20251001";
@@ -45,7 +48,8 @@ const OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions";
 const COST_TABLE: Record<string, { input: number; output: number; cacheWrite?: number; cacheRead?: number }> = {
   [GPT54_MODEL]:      { input: 2.50, output: 15.00 },
   [GPT54_MINI_MODEL]: { input: 0.75, output: 3.00  },
-  [OR_GPT54_MINI]:    { input: 0.83, output: 3.30  }, // OpenRouter ~10% markup estimate
+  [OR_GPT54_MODEL]:   { input: 2.75, output: 16.50 }, // OpenRouter GPT-5.4 ~10% markup estimate
+  [OR_GPT54_MINI]:    { input: 0.83, output: 3.30  }, // OpenRouter GPT-5.4-mini ~10% markup estimate
   [OR_HAIKU_MODEL]:   { input: 0.88, output: 4.40  }, // OpenRouter Haiku rate estimate
   // Anthropic Haiku 4.5: input $0.80, cache write $1.00 (1.25×), cache read $0.08 (0.1×), output $4.00
   [ANTHROPIC_MODEL]:  { input: 0.80, output: 4.00, cacheWrite: 1.00, cacheRead: 0.08 },
@@ -82,6 +86,7 @@ export async function callAI(params: {
 
   const gpt54Key     = process.env.OPENAI_API_KEY_GPT54;
   const gpt54MiniKey = process.env.OPENAI_API_KEY_GPT54_MINI;
+  const orGpt54Key   = process.env.OPENROUTER_KEY_GPT54;
   const orGpt54Mini  = process.env.OPENROUTER_KEY_GPT54_MINI;
   const orHaikuKey   = process.env.OPENROUTER_KEY_HAIKU;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -99,6 +104,12 @@ export async function callAI(params: {
     chain.push({
       name: GPT54_MINI_MODEL,
       fn: () => callOpenAI({ messages, system, maxTokens, temperature, jsonMode, apiKey: gpt54MiniKey, model: GPT54_MINI_MODEL }),
+    });
+  }
+  if (orGpt54Key) {
+    chain.push({
+      name: OR_GPT54_MODEL,
+      fn: () => callOpenRouter({ messages, system, maxTokens, temperature, jsonMode, apiKey: orGpt54Key, model: OR_GPT54_MODEL }),
     });
   }
   if (orGpt54Mini) {
@@ -123,8 +134,8 @@ export async function callAI(params: {
   if (chain.length === 0) {
     throw new Error(
       "No AI provider configured. Set at least one key in .env.local: " +
-      "OPENAI_API_KEY_GPT54, OPENAI_API_KEY_GPT54_MINI, OPENROUTER_KEY_GPT54_MINI, " +
-      "OPENROUTER_KEY_HAIKU, or ANTHROPIC_API_KEY."
+      "OPENAI_API_KEY_GPT54, OPENAI_API_KEY_GPT54_MINI, OPENROUTER_KEY_GPT54, " +
+      "OPENROUTER_KEY_GPT54_MINI, OPENROUTER_KEY_HAIKU, or ANTHROPIC_API_KEY."
     );
   }
 
