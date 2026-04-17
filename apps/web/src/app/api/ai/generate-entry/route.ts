@@ -5,73 +5,152 @@ import { requireAuth } from "@/lib/api-auth";
 function extractKeyActivities(text: string): string[] {
   const keywords = [
     // Hardware
-    "cable", "termination", "rj45", "ethernet", "connector", "psu", "power", "diagnostics", "ram", "cpu", "motherboard", "gpu", "workstation", "server", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer", "scanner", "router", "switch", "firewall", "modem",
+    "cable",
+    "termination",
+    "rj45",
+    "ethernet",
+    "connector",
+    "psu",
+    "power",
+    "diagnostics",
+    "ram",
+    "cpu",
+    "motherboard",
+    "gpu",
+    "workstation",
+    "server",
+    "laptop",
+    "desktop",
+    "monitor",
+    "keyboard",
+    "mouse",
+    "printer",
+    "scanner",
+    "router",
+    "switch",
+    "firewall",
+    "modem",
     // Software
-    "database", "sql", "python", "java", "c\\+\\+", "javascript", "api", "rest", "json", "xml", "html", "css", "linux", "windows", "macos", "ubuntu", "centos", "docker", "kubernetes", "git", "github", "ci/cd", "jenkins", "excel", "word", "powerpoint", "backup", "encryption", "authentication",
+    "database",
+    "sql",
+    "python",
+    "java",
+    "c\\+\\+",
+    "javascript",
+    "api",
+    "rest",
+    "json",
+    "xml",
+    "html",
+    "css",
+    "linux",
+    "windows",
+    "macos",
+    "ubuntu",
+    "centos",
+    "docker",
+    "kubernetes",
+    "git",
+    "github",
+    "ci/cd",
+    "jenkins",
+    "excel",
+    "word",
+    "powerpoint",
+    "backup",
+    "encryption",
+    "authentication",
     // Networking
-    "network", "topology", "osi model", "tcp/ip", "subnet", "dhcp", "dns", "ip address", "ping", "traceroute", "firewall rule", "vlan", "wan", "lan",
+    "network",
+    "topology",
+    "osi model",
+    "tcp/ip",
+    "subnet",
+    "dhcp",
+    "dns",
+    "ip address",
+    "ping",
+    "traceroute",
+    "firewall rule",
+    "vlan",
+    "wan",
+    "lan",
     // Business/General
-    "spreadsheet", "pivot table", "data entry", "documentation", "filing", "inventory", "procurement", "audit", "compliance", "meeting", "presentation", "training",
+    "spreadsheet",
+    "pivot table",
+    "data entry",
+    "documentation",
+    "filing",
+    "inventory",
+    "procurement",
+    "audit",
+    "compliance",
+    "meeting",
+    "presentation",
+    "training",
   ];
 
   const text_lower = text.toLowerCase();
-  const found = keywords.filter(kw => text_lower.includes(kw));
+  const found = keywords.filter((kw) => text_lower.includes(kw));
   return [...new Set(found)]; // remove duplicates
 }
 
 // ─── Build department-to-bridge mapping ────────────────────────────────────────
-function getDeptBridgeMapping(department: string, activities: string[]): { bridges: Record<string, string>; unknown: boolean } {
+function getDeptBridgeMapping(
+  department: string,
+  activities: string[],
+): { bridges: Record<string, string>; unknown: boolean } {
   const dept_lower = department.toLowerCase();
 
   // Map department keywords to bridge sets
   const mappings: Record<string, Record<string, string>> = {
     "industrial mathematics": {
-      "cable": "Boolean Algebra (logic gates in network switching)",
-      "network": "Graph Theory (modelling networks as G=(V,E))",
-      "subnet": "Binary arithmetic (IP addressing and subnetting)",
-      "psu": "Ohm's Law (P=VI power calculations)",
-      "database": "Set theory (database relations and queries)",
-      "encryption": "Linear algebra (cryptographic key matrices)",
+      cable: "Boolean Algebra (logic gates in network switching)",
+      network: "Graph Theory (modelling networks as G=(V,E))",
+      subnet: "Binary arithmetic (IP addressing and subnetting)",
+      psu: "Ohm's Law (P=VI power calculations)",
+      database: "Set theory (database relations and queries)",
+      encryption: "Linear algebra (cryptographic key matrices)",
     },
     "computer science": {
-      "database": "ACID properties and normalisation theory",
-      "network": "OSI model and TCP/IP stack",
-      "api": "Interface design and abstraction principles",
-      "encryption": "Cryptographic algorithms and access control theory",
-      "git": "Version control and distributed systems concepts",
-      "backup": "Data redundancy and fault tolerance theory",
+      database: "ACID properties and normalisation theory",
+      network: "OSI model and TCP/IP stack",
+      api: "Interface design and abstraction principles",
+      encryption: "Cryptographic algorithms and access control theory",
+      git: "Version control and distributed systems concepts",
+      backup: "Data redundancy and fault tolerance theory",
     },
-    "electrical": {
-      "psu": "Ohm's Law and Kirchhoff's Voltage Law",
-      "cable": "Signal propagation and impedance theory",
-      "network": "Transmission line theory and signal integrity",
-      "circuit": "Semiconductor theory and transistor switching",
-      "transformer": "Turns ratio Vp/Vs=Np/Ns and magnetic coupling",
+    electrical: {
+      psu: "Ohm's Law and Kirchhoff's Voltage Law",
+      cable: "Signal propagation and impedance theory",
+      network: "Transmission line theory and signal integrity",
+      circuit: "Semiconductor theory and transistor switching",
+      transformer: "Turns ratio Vp/Vs=Np/Ns and magnetic coupling",
     },
-    "business": {
-      "inventory": "EOQ model (Economic Order Quantity)",
-      "spreadsheet": "Financial modelling and ratio analysis",
-      "audit": "Cost-benefit analysis and internal controls",
-      "data": "Statistical sampling and regression analysis",
-      "pricing": "Price elasticity of demand models",
+    business: {
+      inventory: "EOQ model (Economic Order Quantity)",
+      spreadsheet: "Financial modelling and ratio analysis",
+      audit: "Cost-benefit analysis and internal controls",
+      data: "Statistical sampling and regression analysis",
+      pricing: "Price elasticity of demand models",
     },
-    "accounting": {
-      "spreadsheet": "Financial modelling and ratio analysis",
-      "audit": "GAAP and internal control frameworks",
-      "payroll": "Tax computation and statutory deductions",
-      "backup": "Data integrity and audit trail principles",
+    accounting: {
+      spreadsheet: "Financial modelling and ratio analysis",
+      audit: "GAAP and internal control frameworks",
+      payroll: "Tax computation and statutory deductions",
+      backup: "Data integrity and audit trail principles",
     },
-    "communication": {
-      "content": "AIDA model (Attention, Interest, Desire, Action)",
-      "presentation": "Audience theory and framing theory",
-      "analytics": "Reach, engagement rate, and CTR metrics",
-      "documentation": "Narrative structure and messaging theory",
+    communication: {
+      content: "AIDA model (Attention, Interest, Desire, Action)",
+      presentation: "Audience theory and framing theory",
+      analytics: "Reach, engagement rate, and CTR metrics",
+      documentation: "Narrative structure and messaging theory",
     },
     "information technology": {
-      "network": "OSI model and TCP/IP",
-      "database": "Normalisation and transaction management",
-      "security": "Encryption, authentication, and access control",
-      "backup": "Distributed systems and redundancy theory",
+      network: "OSI model and TCP/IP",
+      database: "Normalisation and transaction management",
+      security: "Encryption, authentication, and access control",
+      backup: "Distributed systems and redundancy theory",
     },
   };
 
@@ -85,14 +164,18 @@ function getDeptBridgeMapping(department: string, activities: string[]): { bridg
   // No match — return generic bridges for unknown dept
   return {
     bridges: {
-      "default": "Connect workplace activity to relevant theoretical framework from your academic programme",
+      default:
+        "Connect workplace activity to relevant theoretical framework from your academic programme",
     },
     unknown: true,
   };
 }
 
 // ─── Build context-aware bridge instruction ────────────────────────────────────
-function buildBridgeInstruction(department: string, rawDescription: string): string {
+function buildBridgeInstruction(
+  department: string,
+  rawDescription: string,
+): string {
   const activities = extractKeyActivities(rawDescription);
   const { bridges, unknown } = getDeptBridgeMapping(department, activities);
 
@@ -114,16 +197,15 @@ Pick the bridge that matches what the student actually did today. Weave it natur
 If the detected activity doesn't match any bridge, generate a natural, specific bridge connecting what they did to a concept from ${department}.`;
 }
 
-
 export interface GenerateEntryRequest {
   rawDescription: string;
   dayName: string;
-  department: string;          // academic dept e.g. "Industrial Mathematics"
-  companyDepartment: string;   // e.g. "IT Department"
-  companyName?: string;        // e.g. "First Bank Nigeria"
+  department: string; // academic dept e.g. "Industrial Mathematics"
+  companyDepartment: string; // e.g. "IT Department"
+  companyName?: string; // e.g. "First Bank Nigeria"
   industry: string;
   companyDescription?: string; // What the company does
-  myRoleDescription?: string;  // What the student's role is
+  myRoleDescription?: string; // What the student's role is
   notesLengthPreference?: "short" | "long"; // short=250-350 words, long=400-450 words
   studyFraming: "assigned" | "research" | null;
   personalStudyDescription?: string; // What the student is personally studying outside work (from onboarding Step 8)
@@ -141,8 +223,15 @@ export interface GenerateEntryResponse {
 
 // ─── Fallback (no API key) ────────────────────────────────────────────────────
 function buildFallback(body: GenerateEntryRequest): GenerateEntryResponse {
-  const { rawDescription, dayName, companyDepartment, department, nothingReason } = body;
-  const activity = rawDescription || nothingReason || "general departmental duties";
+  const {
+    rawDescription,
+    dayName,
+    companyDepartment,
+    department,
+    nothingReason,
+  } = body;
+  const activity =
+    rawDescription || nothingReason || "general departmental duties";
   return {
     technicalNotes: `DEPARTMENTAL OPERATIONS AND DOCUMENTATION\n\nDuring the session on ${dayName}, I was engaged in carrying out assigned tasks within the ${companyDepartment} as directed by the supervising officer. The activities involved ${activity}, all executed in accordance with established workplace procedures and departmental standards.\n\nFurthermore, I participated in routine documentation and filing exercises within the department, which reinforced the importance of systematic record-keeping in an organisational context. This experience highlighted practical applications of core principles studied in my ${department} curriculum.\n\nDIAGRAM SUGGESTION: Organisational chart (organogram) — Draw the departmental structure showing unit heads, supervisors, and intern positions. Label all reporting lines clearly.`,
     keyActivities: [
@@ -324,8 +413,6 @@ keyActivities: 2-4 past-tense phrases like "Performed network diagnostics"
 progressChartEntry: ALL CAPS noun phrase, max 8 words, no "I" or "We"
 deptBridgeUsed: Academic concept name like "Graph Theory G=(V,E)"`;
 
-
-
 const FREE_GENERATION_LIMIT = 5;
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -364,9 +451,12 @@ export async function POST(req: NextRequest) {
 
   // ── Subscription / generation gate ──────────────────────────────────────────
   // Both fresh generations AND refines count toward limits.
-  const isRefine = typeof rawDescription === "string" && rawDescription.startsWith("PREVIOUS ENTRY (rewrite");
+  const isRefine =
+    typeof rawDescription === "string" &&
+    rawDescription.startsWith("PREVIOUS ENTRY (rewrite");
 
-  const { makeAdminClient, checkDailyLimit, incrementDailyLimit } = await import("@/lib/ai-rate-limit");
+  const { makeAdminClient, checkDailyLimit, incrementDailyLimit } =
+    await import("@/lib/ai-rate-limit");
   const adminClient = makeAdminClient();
 
   // ── Step 1: Check daily limit first (no increment yet) ──────────────────────
@@ -381,14 +471,22 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   const genUsed: number = profile?.ai_generations_used ?? 0;
-  const isPaid = profile?.subscription_status === "paid" || (!dailyCheck.blocked && dailyCheck.isPaid);
+  const isPaid =
+    profile?.subscription_status === "paid" ||
+    (!dailyCheck.blocked && dailyCheck.isPaid);
   if (!isPaid && genUsed >= FREE_GENERATION_LIMIT) {
     return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
   }
 
   // ── Step 3: Increment both counters now that all checks passed ───────────────
   await Promise.all([
-    incrementDailyLimit(user.id, adminClient, dailyCheck.blocked ? 0 : (dailyCheck as { callsToday: number }).callsToday),
+    incrementDailyLimit(
+      user.id,
+      adminClient,
+      dailyCheck.blocked
+        ? 0
+        : (dailyCheck as { callsToday: number }).callsToday,
+    ),
     adminClient
       .from("profiles")
       .update({ ai_generations_used: genUsed + 1 })
@@ -401,20 +499,20 @@ export async function POST(req: NextRequest) {
 
 ${rawDescription}`
     : isNothingDay
-    ? `No activity today. Reason: "${nothingReason || "no assignment given"}".
+      ? `No activity today. Reason: "${nothingReason || "no assignment given"}".
 Invent a realistic, plausible ${dayName} entry for a ${companyDepartment} intern (${department}, ${industry}). Use a routine task: maintenance, documentation, monitoring, or workplace-directed study. All writing rules apply — no filler.`
-    : `Student's ${dayName} input (may contain voice-to-text errors or informal language):
+      : `Student's ${dayName} input (may contain voice-to-text errors or informal language):
 """
 ${rawDescription}
 """
 Correct all technical errors, voice recognition mistakes, and vague terms before writing. Use only professional corrected terms in the entry.`;
 
-
-  const studyFramingNote = studyFraming === "assigned"
-    ? `Study framing: ASSIGNED — any learning mentioned should be framed as "Under the direction of the supervisor, I was assigned to study [topic] as part of my cross-training in the ${companyDepartment}."`
-    : studyFraming === "research"
-    ? `Study framing: RESEARCH — any learning mentioned should be framed as internal R&D work directed by the company.`
-    : `Study framing: OFFICE WORK — all activities are direct office tasks. Apply Personal Learning Translation Rule (Section 3) for anything that sounds like self-study.`;
+  const studyFramingNote =
+    studyFraming === "assigned"
+      ? `Study framing: ASSIGNED — any learning mentioned should be framed as "Under the direction of the supervisor, I was assigned to study [topic] as part of my cross-training in the ${companyDepartment}."`
+      : studyFraming === "research"
+        ? `Study framing: RESEARCH — any learning mentioned should be framed as internal R&D work directed by the company.`
+        : `Study framing: OFFICE WORK — all activities are direct office tasks. Apply Personal Learning Translation Rule (Section 3) for anything that sounds like self-study.`;
 
   const studyMaterialsSection = studyMaterialsText
     ? `\nSTUDENT'S ACTUAL STUDY MATERIALS (extracted from their uploaded PDFs):
@@ -436,7 +534,9 @@ ${studyMaterialsText.slice(0, 12_000)}
     personalStudyDescription
       ? `- Personal study topics: ${personalStudyDescription} — reframe as office-directed per Section 4`
       : "",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   // Build context-aware bridge instruction based on department and activities
   const bridgeInstruction = buildBridgeInstruction(department, rawDescription);
@@ -470,9 +570,19 @@ keyActivities: 2–4 short past-tense phrases. progressChartEntry: ALL CAPS noun
     const { callAI } = await import("@/lib/ai-provider");
     // Short: max 350 words (~473 tokens) + JSON overhead (~130) = 603 → ceiling 650
     // Long:  max 450 words (~608 tokens) + JSON overhead (~130) = 738 → ceiling 800
-    const result = await callAI({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }], maxTokens: isShortNotes ? 650 : 800, temperature: 0.2, jsonMode: true });
-    console.log(`[ai/generate-entry] ✓ model=${result.usage.model} in=${result.usage.input} out=${result.usage.output} cost=$${result.usage.cost.toFixed(5)}${result.usage.fallbackChain ? ` fallback-from=${result.usage.fallbackChain.join("→")}` : ""}`);
-    const cleaned = result.text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    const result = await callAI({
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      maxTokens: isShortNotes ? 650 : 800,
+      temperature: 0.2,
+      jsonMode: true,
+    });
+    console.log(
+      `[ai/generate-entry] ✓ model=${result.usage.model} in=${result.usage.input} out=${result.usage.output} cost=$${result.usage.cost.toFixed(5)}${result.usage.fallbackChain ? ` fallback-from=${result.usage.fallbackChain.join("→")}` : ""}`,
+    );
+    const cleaned = result.text
+      .replace(/^```(?:json)?\n?/, "")
+      .replace(/\n?```$/, "");
     const parsed: GenerateEntryResponse = JSON.parse(cleaned);
 
     // Guard: ensure required fields are present and correct types before sending to client
@@ -483,17 +593,34 @@ keyActivities: 2–4 short past-tense phrases. progressChartEntry: ALL CAPS noun
       typeof parsed.deptBridgeUsed !== "string"
     ) {
       console.error("[ai/generate-entry] AI returned incomplete JSON:", parsed);
-      return NextResponse.json({ error: "AI returned an incomplete response. Please try again." }, { status: 500 });
+      return NextResponse.json(
+        { error: "AI returned an incomplete response. Please try again." },
+        { status: 500 },
+      );
     }
 
     const newCallsToday = (dailyCheck as { callsToday: number }).callsToday + 1;
-    const { DAILY_LIMIT_FREE: dlFree, DAILY_LIMIT_PAID: dlPaid } = await import("@/lib/ai-rate-limit");
+    const { DAILY_LIMIT_FREE: dlFree, DAILY_LIMIT_PAID: dlPaid } =
+      await import("@/lib/ai-rate-limit");
     const dailyLimit = isPaid ? dlPaid : dlFree;
-    return NextResponse.json({ ...parsed, _usage: result.usage, _generationsUsed: genUsed + 1, _callsToday: newCallsToday, _dailyLimit: dailyLimit });
+    return NextResponse.json({
+      ...parsed,
+      _usage: result.usage,
+      _generationsUsed: genUsed + 1,
+      _callsToday: newCallsToday,
+      _dailyLimit: dailyLimit,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const cause = err instanceof Error && (err as NodeJS.ErrnoException).cause;
-    console.error("[ai/generate-entry] callAI failed:", message, cause ? `| cause: ${JSON.stringify(cause)}` : "");
-    return NextResponse.json({ error: `AI generation failed: ${message}` }, { status: 500 });
+    console.error(
+      "[ai/generate-entry] callAI failed:",
+      message,
+      cause ? `| cause: ${JSON.stringify(cause)}` : "",
+    );
+    return NextResponse.json(
+      { error: `AI generation failed: ${message}` },
+      { status: 500 },
+    );
   }
 }
