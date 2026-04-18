@@ -13,7 +13,7 @@ SiLog helps Nigerian university students write perfect SIWES industrial attachme
 
 ## 🚀 Get Started
 
-Visit [SiLog-app.vercerl.app](https://silog-app.vercel.app) to sign up and start using the app.
+Visit [SiLog.pro](https://silog.pro) to sign up and start using the app.
 
 ## Tech Stack
 
