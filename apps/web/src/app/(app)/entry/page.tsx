@@ -335,8 +335,8 @@ function Step2Describe({ day, week, onNext, onBack }: {
             </div>
           )}
           <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
-          <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value.slice(0, 600))}
-            maxLength={600}
+          <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value.slice(0, 500))}
+            maxLength={500}
             placeholder={`Tell SiLog everything that happened today.\n\nExamples:\n• "I fixed 3 computers, replaced RAM on one, helped with printer on the 3rd floor, and configured 2 new staff email accounts"\n• "Today I worked on the ML model we're building — implemented gradient descent and tested it"\n• "I helped configure the router and they explained subnetting, also I relabelled some cables in the server room"`}
             style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: `1px solid ${isListening ? "rgba(220,38,38,0.3)" : "rgba(140,90,60,0.25)"}`, background: "var(--card)", fontSize: 13, lineHeight: 1.75, color: "var(--text)", resize: "vertical", fontFamily: "var(--font-sans)", outline: "none", transition: "border-color 0.2s" }}
           />
@@ -685,6 +685,7 @@ function Step4Preview({ day, week, generated, loading, onSave, onRefine, onBack 
           <label style={labelStyle}>What should change?</label>
           <textarea rows={3} value={refineText} onChange={(e) => setRefineText(e.target.value)}
             placeholder="e.g. Make it more technical, add more maths, change tone, focus on the Python work…"
+            maxLength={300}
             style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(140,90,60,0.25)", background: "var(--card)", fontSize: 12, lineHeight: 1.6, color: "var(--text)", resize: "none", fontFamily: "var(--font-sans)", outline: "none", marginBottom: 10 }}
           />
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -778,26 +779,6 @@ function EntryPageInner() {
   const bankItemsParam = searchParams.get("bankItems");
   const preselectedBankIds = bankItemsParam ? bankItemsParam.split(",").filter(Boolean) : [];
 
-  // Load extracted text from study PDFs once
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return;
-      const { data } = await supabase
-        .from("study_materials")
-        .select("extracted_text, file_name")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true });
-      if (!data || data.length === 0) return;
-      // Concatenate all PDFs with headings; cap each at 10k chars to stay within token budget
-      const combined = data
-        .map((m: { file_name: string; extracted_text: string }) =>
-          `[Study material: ${m.file_name}]\n${(m.extracted_text ?? "").slice(0, 10_000)}`
-        )
-        .join("\n\n---\n\n");
-      setStudyMaterialsText(combined);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Fetch daily usage on mount — writes into shared store so sidebar stays in sync
   useEffect(() => {
@@ -854,7 +835,6 @@ function EntryPageInner() {
   const [savedBankedCount, setSavedBankedCount] = useState(0);
 
   // Study materials (loaded once on mount)
-  const [studyMaterialsText, setStudyMaterialsText] = useState<string>("");
 
   // Notes length mode — default from profile, switchable before generation
   const [notesLengthMode, setNotesLengthMode] = useState<"short" | "long">(
@@ -918,8 +898,6 @@ function EntryPageInner() {
       companyDepartment: profile.companyDepartment ?? "IT Department",
       companyName: profile.companyName || undefined,
       industry: profile.industry ?? "Technology",
-      companyDescription: (profile as { companyDescription?: string }).companyDescription || undefined,
-      myRoleDescription: (profile as { myRoleDescription?: string }).myRoleDescription || undefined,
       notesLengthPreference: notesLengthMode,
       studyFraming: profile.studyLogbookFraming ?? null,
       personalStudyDescription: profile.personalStudyDescription || undefined,
@@ -927,7 +905,6 @@ function EntryPageInner() {
       nothingToday: isRefine ? false : (nothingToday && !hasActivities),
       nothingReason: (isRefine || hasActivities) ? undefined : nothingReason,
       // Pass extracted PDF text so AI can reference actual study content
-      studyMaterialsText: studyMaterialsText || undefined,
     };
 
     try {

@@ -55,9 +55,7 @@ export function Step3Company({ onComplete: _onComplete }: Props) {
   const canContinue = !!(
     data.companyName?.trim() &&
     industryReady &&
-    data.companyDepartment?.trim() &&
-    data.companyDescription?.trim() &&
-    data.myRoleDescription?.trim()
+    data.companyDepartment?.trim()
   );
 
   return (
@@ -188,54 +186,6 @@ export function Step3Company({ onComplete: _onComplete }: Props) {
               autoFocus
             />
           )}
-        </div>
-
-        {/* Company description */}
-        <div>
-          <label className={labelClass} style={labelStyle}>What does this company do?</label>
-          <textarea
-            rows={3}
-            placeholder="e.g. New Horizons Nigeria is a technology training centre that provides IT certification courses and professional development programmes for corporate clients and individuals."
-            className={inputClass}
-            style={{
-              borderColor: focused === "companyDesc" ? "#8C5A3C" : "rgba(140,90,60,0.25)",
-              color: "var(--text)",
-              resize: "none",
-              lineHeight: 1.6,
-            }}
-            maxLength={600}
-            value={data.companyDescription ?? ""}
-            onChange={(e) => setField("companyDescription", e.target.value)}
-            onFocus={() => setFocused("companyDesc")}
-            onBlur={() => setFocused(null)}
-          />
-          <p className="text-[11px] mt-1" style={{ color: "#9CA3AF" }}>
-            2–3 sentences. The AI reads this to understand your company so entries sound genuine.
-          </p>
-        </div>
-
-        {/* Role description */}
-        <div>
-          <label className={labelClass} style={labelStyle}>What is your role / what do you do there?</label>
-          <textarea
-            rows={3}
-            placeholder="e.g. As an IT intern in the Technical Support unit, I assist with hardware repairs, network configuration, software installation, and user support for staff across all departments."
-            className={inputClass}
-            style={{
-              borderColor: focused === "roleDesc" ? "#8C5A3C" : "rgba(140,90,60,0.25)",
-              color: "var(--text)",
-              resize: "none",
-              lineHeight: 1.6,
-            }}
-            maxLength={600}
-            value={data.myRoleDescription ?? ""}
-            onChange={(e) => setField("myRoleDescription", e.target.value)}
-            onFocus={() => setFocused("roleDesc")}
-            onBlur={() => setFocused(null)}
-          />
-          <p className="text-[11px] mt-1" style={{ color: "#9CA3AF" }}>
-            Describe your day-to-day tasks. The AI uses this to personalise every logbook entry.
-          </p>
         </div>
 
         {/* Preview */}

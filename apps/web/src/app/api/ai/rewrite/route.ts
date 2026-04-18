@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 
+const FREE_GENERATION_LIMIT = 5;
+
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth instanceof NextResponse) return auth;
@@ -16,16 +18,39 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── Daily rate limit ─────────────────────────────────────────────────────────
   const { makeAdminClient, checkDailyLimit, incrementDailyLimit, DAILY_LIMIT_FREE, DAILY_LIMIT_PAID } = await import("@/lib/ai-rate-limit");
   const adminClient = makeAdminClient();
   const userId = (auth as { user: { id: string } }).user.id;
+
+  // ── Step 1: Check daily limit ────────────────────────────────────────────────
   const rateLimit = await checkDailyLimit(userId, adminClient);
   if (rateLimit.blocked) return rateLimit.response;
   const dailyCheck = rateLimit as { callsToday: number; isPaid: boolean };
-  await incrementDailyLimit(userId, adminClient, dailyCheck.callsToday);
+
+  // ── Step 2: Check lifetime limit for free users ──────────────────────────────
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("subscription_status, ai_generations_used")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const genUsed: number = profile?.ai_generations_used ?? 0;
+  const isPaid = profile?.subscription_status === "paid" || dailyCheck.isPaid;
+  if (!isPaid && genUsed >= FREE_GENERATION_LIMIT) {
+    return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
+  }
+
+  // ── Step 3: Increment both counters after all checks pass ────────────────────
+  await Promise.all([
+    incrementDailyLimit(userId, adminClient, dailyCheck.callsToday),
+    adminClient
+      .from("profiles")
+      .update({ ai_generations_used: genUsed + 1 })
+      .eq("id", userId),
+  ]);
+
   const newCallsToday = dailyCheck.callsToday + 1;
-  const dailyLimit = dailyCheck.isPaid ? DAILY_LIMIT_PAID : DAILY_LIMIT_FREE;
+  const dailyLimit = isPaid ? DAILY_LIMIT_PAID : DAILY_LIMIT_FREE;
 
   try {
     const { callAI } = await import("@/lib/ai-provider");
@@ -58,6 +83,7 @@ Rules:
       _usage: result.usage,
       _callsToday: newCallsToday,
       _dailyLimit: dailyLimit,
+      _generationsUsed: genUsed + 1,
     });
   } catch (err) {
     console.error("[ai/rewrite]", err);

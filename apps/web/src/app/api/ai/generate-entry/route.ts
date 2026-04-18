@@ -204,14 +204,11 @@ export interface GenerateEntryRequest {
   companyDepartment: string; // e.g. "IT Department"
   companyName?: string; // e.g. "First Bank Nigeria"
   industry: string;
-  companyDescription?: string; // What the company does
-  myRoleDescription?: string; // What the student's role is
   notesLengthPreference?: "short" | "long"; // short=250-350 words, long=400-450 words
   studyFraming: "assigned" | "research" | null;
   personalStudyDescription?: string; // What the student is personally studying outside work (from onboarding Step 8)
   nothingToday?: boolean;
   nothingReason?: string;
-  studyMaterialsText?: string; // Extracted text from the student's uploaded study PDFs
 }
 
 export interface GenerateEntryResponse {
@@ -429,14 +426,11 @@ export async function POST(req: NextRequest) {
     companyDepartment,
     companyName,
     industry,
-    companyDescription,
-    myRoleDescription,
     notesLengthPreference,
     studyFraming,
     personalStudyDescription,
     nothingToday,
     nothingReason,
-    studyMaterialsText,
   } = body;
 
   // Check a provider is configured — fall back to mock if neither key is set
@@ -514,13 +508,7 @@ Correct all technical errors, voice recognition mistakes, and vague terms before
         ? `Study framing: RESEARCH — any learning mentioned should be framed as internal R&D work directed by the company.`
         : `Study framing: OFFICE WORK — all activities are direct office tasks. Apply Personal Learning Translation Rule (Section 3) for anything that sounds like self-study.`;
 
-  const studyMaterialsSection = studyMaterialsText
-    ? `\nSTUDENT'S ACTUAL STUDY MATERIALS (extracted from their uploaded PDFs):
-These are the real topics and content the student is studying. When writing entries involving personal study, reference specific concepts, terminology, and ideas from these materials directly — do NOT invent generic topics.
----
-${studyMaterialsText.slice(0, 12_000)}
----`
-    : "";
+  // Nothing-day entries are invented routine tasks — study materials are irrelevant and just waste tokens
 
   // Build word-count instruction based on student's notes length preference
   const isShortNotes = notesLengthPreference === "short";
@@ -528,15 +516,9 @@ ${studyMaterialsText.slice(0, 12_000)}
     ? `8. LENGTH — Short notes mode. HARD MAXIMUM: 350 words in technicalNotes. DO NOT exceed 350 words. Target 250–300 words. Minimum 2 paragraphs. At least 3 named specific technical items. Numbered lists or sub-headings where the format calls for them. Stop writing the notes once you approach 300 words.`
     : `8. LENGTH IS MANDATORY — Long notes mode. HARD MAXIMUM: 450 words in technicalNotes. DO NOT exceed 450 words. Target 400–450 words. Minimum 3 paragraphs, at least 3 named specific technical items, numbered lists or sub-headings where the format calls for them. Use the structural format from Section 3 properly — if the topic has Types, list them with numbered items and (i)(ii) sub-points.`;
   // Build student context section from profile
-  const profileContext = [
-    companyDescription ? `- Company description: ${companyDescription}` : "",
-    myRoleDescription ? `- Student's role: ${myRoleDescription}` : "",
-    personalStudyDescription
-      ? `- Personal study topics: ${personalStudyDescription} — reframe as office-directed per Section 4`
-      : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const profileContext = personalStudyDescription
+    ? `- Personal study topics: ${personalStudyDescription} — reframe as office-directed per Section 4`
+    : "";
 
   // Build context-aware bridge instruction based on department and activities
   const bridgeInstruction = buildBridgeInstruction(department, rawDescription);
@@ -547,7 +529,6 @@ ${studyMaterialsText.slice(0, 12_000)}
 - Internship Department: ${companyDepartment}
 - Industry sector: ${industry}
 ${profileContext ? profileContext + "\n" : ""}- ${studyFramingNote}
-${studyMaterialsSection}
 STUDENT INPUT FOR ${dayName.toUpperCase()}:
 ${inputSection}
 

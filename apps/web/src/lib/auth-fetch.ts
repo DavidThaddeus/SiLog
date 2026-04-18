@@ -15,7 +15,13 @@ export async function authHeaders(): Promise<HeadersInit> {
   // If getSession returned no token, the session may have expired and the
   // background refresh hasn't fired yet — force a refresh now.
   if (!session?.access_token) {
-    const { data: refreshed } = await supabase.auth.refreshSession();
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      // Refresh token is invalid/expired — sign out so SIGNED_OUT fires
+      // and the layout's onAuthStateChange redirects to /login.
+      supabase.auth.signOut().catch(() => {});
+      return { "Content-Type": "application/json" };
+    }
     session = refreshed.session;
   }
 

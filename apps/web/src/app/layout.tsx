@@ -49,6 +49,31 @@ export const metadata: Metadata = {
     ],
     shortcut: "/logo-192.png",
   },
+  openGraph: {
+    title: "SiLog — SIWES Logbook Assistant",
+    description:
+      "AI-powered logbook assistant for Nigerian SIWES students. Write perfect logbook entries regardless of course, company, or attendance pattern.",
+    url: "https://www.silog.pro",
+    siteName: "SiLog",
+    images: [
+      {
+        url: "https://www.silog.pro/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "SiLog — SIWES Logbook Assistant",
+      },
+    ],
+    type: "website",
+    locale: "en_NG",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SiLog — SIWES Logbook Assistant",
+    description:
+      "AI-powered logbook assistant for Nigerian SIWES students. Write perfect logbook entries regardless of course, company, or attendance pattern.",
+    images: ["https://www.silog.pro/og-image.png"],
+    site: "@silogpro",
+  },
 };
 
 export default function RootLayout({

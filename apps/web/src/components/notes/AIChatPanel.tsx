@@ -42,6 +42,24 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion, notesLen
   const dailyLimit = useSubscriptionStore((s) => s.dailyLimit);
   const limitReached = callsToday !== null && dailyLimit !== null && callsToday >= dailyLimit;
 
+  // Fetch current usage on mount so the limit check is accurate even if the user
+  // landed on this page directly without visiting the entry page first
+  useEffect(() => {
+    if (callsToday === null) {
+      authHeaders().then((headers) =>
+        fetch("/api/ai/usage", { headers })
+          .then((r) => r.json())
+          .then((d) => {
+            if (typeof d.callsToday === "number" && typeof d.dailyLimit === "number") {
+              useSubscriptionStore.getState().setDailyUsage(d.callsToday, d.dailyLimit);
+            }
+          })
+          .catch(() => {})
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -75,11 +93,24 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion, notesLen
         return;
       }
 
+      if (res.status === 402) {
+        setMessages((m) => [...m, {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          content: "You've used all 5 free AI generations. Upgrade to continue using the AI assistant.",
+        }]);
+        setLoading(false);
+        return;
+      }
+
       const data = await res.json();
 
-      // Update daily usage in shared store so sidebar stays in sync
+      // Update both daily and lifetime counters in shared store
       if (typeof data._callsToday === "number" && typeof data._dailyLimit === "number") {
         useSubscriptionStore.getState().setDailyUsage(data._callsToday, data._dailyLimit);
+      }
+      if (typeof data._generationsUsed === "number") {
+        useSubscriptionStore.getState().setGenerationsUsed(data._generationsUsed);
       }
 
       setMessages((m) => [
@@ -311,6 +342,7 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion, notesLen
           placeholder={limitReached ? "Daily limit reached · Come back at 12:00 AM" : "Ask the AI to change anything…"}
           value={input}
           disabled={limitReached}
+          maxLength={300}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

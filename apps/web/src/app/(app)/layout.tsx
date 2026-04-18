@@ -228,33 +228,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // ── Inner fetch function (extracted so it can be timeout-raced) ─────────────
   async function fetchAndPopulate(userId: string, routerRef: typeof router, isBackgroundRefresh = false) {
-    // Safe per-column helper — a missing column returns null instead of failing the whole query
-    const loadCol = async <T extends Record<string, unknown>>(col: string): Promise<T | null> => {
-      const r = await supabase.from("profiles").select(col).eq("id", userId).maybeSingle();
-      return r.error ? null : (r.data as T | null);
-    };
-
-    // All requests fire in parallel — core profile + extended columns + payment + saved logbook
-    const [profileResult, durRow, subRow, genRow, fullPayRow, lastPayment, savedWeeks] = await Promise.all([
+    // Single batched query for all profile columns — replaces 5 separate round-trips
+    const [profileResult, lastPayment, savedWeeks] = await Promise.all([
       supabase
         .from("profiles")
-        .select("full_name, department, university, company_name, company_dept, industry, start_date, attendance_days, has_personal_study, study_framing")
+        .select("full_name, department, university, company_name, company_dept, industry, start_date, attendance_days, has_personal_study, study_framing, siwes_duration_months, subscription_status, subscription_expires_at, ai_generations_used, is_full_payment")
         .eq("id", userId)
         .maybeSingle(),
-      loadCol<{ siwes_duration_months: number }>("siwes_duration_months"),
-      loadCol<{ subscription_status: string; subscription_expires_at: string | null }>("subscription_status, subscription_expires_at"),
-      loadCol<{ ai_generations_used: number }>("ai_generations_used"),
-      loadCol<{ is_full_payment: boolean }>("is_full_payment"),
-      Promise.resolve(
-        supabase
-          .from("payment_transactions")
-          .select("created_at")
-          .eq("user_id", userId)
-          .eq("status", "success")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      ).then((r) => (r.error ? null : r.data)).catch(() => null),
+      supabase
+        .from("payment_transactions")
+        .select("created_at")
+        .eq("user_id", userId)
+        .eq("status", "success")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then((r) => (r.error ? null : r.data))
+        .catch(() => null),
       loadUserData(userId),
     ]);
 
@@ -266,7 +256,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const siwesDuration = (durRow?.siwes_duration_months ?? 6) as 3 | 6 | 12;
+    const siwesDuration = ((profile.siwes_duration_months as number) ?? 6) as 3 | 6 | 12;
 
     useOnboardingStore.setState({
       data: {
@@ -285,11 +275,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     });
 
     // Populate subscription store — check expiry for monthly payers
-    const isFullPayment = fullPayRow?.is_full_payment ?? false;
-    const subExpiry = subRow?.subscription_expires_at ?? null;
-    const genUsed = genRow?.ai_generations_used ?? 0;
+    const isFullPayment = (profile.is_full_payment as boolean) ?? false;
+    const subExpiry = (profile.subscription_expires_at as string | null) ?? null;
+    const genUsed = (profile.ai_generations_used as number) ?? 0;
 
-    let subStatus: "free" | "paid" = (subRow?.subscription_status as "free" | "paid") ?? "free";
+    let subStatus: "free" | "paid" = ((profile.subscription_status as "free" | "paid") ?? "free");
     if (subStatus === "paid" && !isFullPayment && subExpiry) {
       const expired = new Date(subExpiry) < new Date();
       if (expired) {
