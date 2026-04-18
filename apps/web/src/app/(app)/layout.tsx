@@ -235,16 +235,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         .select("full_name, department, university, company_name, company_dept, industry, start_date, attendance_days, has_personal_study, study_framing, siwes_duration_months, subscription_status, subscription_expires_at, ai_generations_used, is_full_payment")
         .eq("id", userId)
         .maybeSingle(),
-      supabase
-        .from("payment_transactions")
-        .select("created_at")
-        .eq("user_id", userId)
-        .eq("status", "success")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then((r) => (r.error ? null : r.data))
-        .catch(() => null),
+      Promise.resolve(
+        supabase
+          .from("payment_transactions")
+          .select("created_at")
+          .eq("user_id", userId)
+          .eq("status", "success")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ).then((r) => (r.error ? null : r.data)).catch(() => null),
       loadUserData(userId),
     ]);
 
