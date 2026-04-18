@@ -58,8 +58,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "https://www.silog.pro/og-image.png",
-        width: 1200,
-        height: 630,
+        width: 2748,
+        height: 1568,
         alt: "SiLog — SIWES Logbook Assistant",
       },
     ],
