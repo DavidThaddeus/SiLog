@@ -59,8 +59,8 @@ export function Step8Study({ onComplete }: Props) {
       setUploadError("Only PDF files are accepted.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError("File too large. Maximum size is 10 MB.");
+    if (file.size > 3 * 1024 * 1024) {
+      setUploadError("File too large. Maximum size is 3 MB.");
       return;
     }
     if (uploadedPDFs.length >= MAX_PDFS) {
@@ -288,7 +288,7 @@ export function Step8Study({ onComplete }: Props) {
                   Click to choose a PDF
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                  {uploadedPDFs.length}/{MAX_PDFS} uploaded · Max 10 MB per file
+                  {uploadedPDFs.length}/{MAX_PDFS} uploaded · Max 3 MB per file
                 </div>
               </div>
             )}

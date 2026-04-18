@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only PDF files are accepted." }, { status: 400 });
   }
 
-  if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "File too large. Maximum size is 10 MB." }, { status: 400 });
+  if (file.size > 3 * 1024 * 1024) {
+    return NextResponse.json({ error: "File too large. Maximum size is 3 MB." }, { status: 400 });
   }
 
   // ── Extract text from PDF ─────────────────────────────────────────────────
