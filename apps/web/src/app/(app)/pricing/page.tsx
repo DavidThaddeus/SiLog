@@ -11,8 +11,9 @@ import {
 } from "@/lib/pricing";
 import { FREE_GENERATION_LIMIT, useSubscriptionStore } from "@/store/subscription";
 import { useOnboardingStore } from "@/store/onboarding";
+import { useDashboardStore } from "@/store/dashboard";
 import { supabase } from "@/lib/supabase";
-import { durationMonthsToWeeks } from "@/lib/dashboard-mock";
+import { durationMonthsToWeeks, recalcWeekFlags } from "@/lib/dashboard-mock";
 
 declare global {
   interface Window {
@@ -127,9 +128,18 @@ export default function PricingPage() {
             return res.json() as Promise<{ ok: boolean; blockNumbers: number[]; purchasedAt: string }>;
           })
           .then(({ blockNumbers }) => {
+            // 1. Update subscription store with new blocks
             blockNumbers.forEach((bn) => addPurchasedBlock(bn));
             markPaid(null, false, new Date().toISOString());
-            setSelected([]); // clear selection after purchase
+            setSelected([]);
+
+            // 2. Recompute dashboard week lock states immediately so the
+            //    dashboard reflects the unlock without requiring a page refresh
+            const newPurchasedBlocks = useSubscriptionStore.getState().purchasedBlocks;
+            const currentWeeks = useDashboardStore.getState().weeks;
+            useDashboardStore.getState().setWeeks(
+              recalcWeekFlags(currentWeeks, newPurchasedBlocks, true)
+            );
           })
           .catch(() => {
             setError(

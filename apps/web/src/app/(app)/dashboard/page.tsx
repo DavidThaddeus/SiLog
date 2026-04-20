@@ -9,30 +9,53 @@ import { ActivityBankWidget } from "@/components/dashboard/ActivityBankWidget";
 import { useInitWeeks } from "@/hooks/useInitWeeks";
 import type { WeekEntry } from "@/types/dashboard";
 
-function BlockLockBanner({ blockNumber }: { blockNumber: number }) {
+function MonthBanner({ blockNumber, isLocked }: { blockNumber: number; isLocked: boolean }) {
   const router = useRouter();
+
+  if (isLocked) {
+    return (
+      <div
+        onClick={() => router.push("/pricing")}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "9px 16px", borderRadius: 10, cursor: "pointer",
+          background: "rgba(140,90,60,0.06)",
+          border: "1px dashed rgba(140,90,60,0.35)",
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(140,90,60,0.1)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(140,90,60,0.06)")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 14 }}>🔐</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#8C5A3C", fontFamily: "var(--font-dm-mono)" }}>
+            Month {blockNumber}
+          </span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· locked</span>
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "#8C5A3C" }}>
+          Unlock this month →
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div
-      onClick={() => router.push("/pricing")}
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "9px 16px", borderRadius: 10, cursor: "pointer",
-        background: "rgba(140,90,60,0.06)",
-        border: "1px dashed rgba(140,90,60,0.35)",
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(140,90,60,0.1)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(140,90,60,0.06)")}
-    >
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "9px 16px", borderRadius: 10,
+      background: "rgba(34,197,94,0.05)",
+      border: "1px solid rgba(34,197,94,0.3)",
+    }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 14 }}>🔐</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#8C5A3C", fontFamily: "var(--font-dm-mono)" }}>
+        <span style={{ fontSize: 14 }}>✅</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d", fontFamily: "var(--font-dm-mono)" }}>
           Month {blockNumber}
         </span>
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· locked</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· unlocked</span>
       </div>
-      <span style={{ fontSize: 12, fontWeight: 600, color: "#8C5A3C" }}>
-        Unlock this month →
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#15803d" }}>
+        ✓ Paid
       </span>
     </div>
   );
@@ -115,16 +138,16 @@ export default function DashboardPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {weeks.map((week: WeekEntry, idx: number) => {
-              // Show ONE banner at the start of each locked block group
-              const isFirstOfLockedBlock =
-                week.isLocked &&
-                (idx === 0 || weeks[idx - 1].blockNumber !== week.blockNumber || !weeks[idx - 1].isLocked);
+              // Show ONE banner at the start of every paid/locked month group (skip week 1 which is free)
+              const isFirstOfBlock =
+                week.blockNumber > 0 &&
+                (idx === 0 || weeks[idx - 1].blockNumber !== week.blockNumber);
 
               return (
                 <div key={week.weekNumber}>
-                  {isFirstOfLockedBlock && (
+                  {isFirstOfBlock && (
                     <div style={{ marginBottom: 4 }}>
-                      <BlockLockBanner blockNumber={week.blockNumber} />
+                      <MonthBanner blockNumber={week.blockNumber} isLocked={week.isLocked} />
                     </div>
                   )}
                   <WeekCard week={week} />
