@@ -3,13 +3,16 @@
 import { useState, useEffect } from "react";
 import Script from "next/script";
 import {
-  MONTHLY_NGN, MONTHLY_USD, MONTHLY_NGN_KOBO,
-  FUNAAB_NGN, FUNAAB_NGN_KOBO,
+  BLOCK_NGN, BLOCK_NGN_KOBO,
+  BLOCK_FUNAAB_NGN, BLOCK_FUNAAB_NGN_KOBO,
   isFunaabEmail,
+  blockWeekRange,
+  totalBlockCount,
 } from "@/lib/pricing";
 import { FREE_GENERATION_LIMIT, useSubscriptionStore } from "@/store/subscription";
 import { useOnboardingStore } from "@/store/onboarding";
 import { supabase } from "@/lib/supabase";
+import { durationMonthsToWeeks } from "@/lib/dashboard-mock";
 
 declare global {
   interface Window {
@@ -25,93 +28,127 @@ const DURATION_LABELS: Record<number, string> = {
 };
 
 export default function PricingPage() {
-  const [currency, setCurrency] = useState<"ngn" | "usd">("ngn");
-  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]); // month numbers selected
+  const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUserEmail(user?.email ?? null));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null);
+      setUserId(user?.id ?? null);
+    });
   }, []);
 
-  const { status, generationsUsed, subscribedAt, expiresAt: nextBillingDate, markPaid } = useSubscriptionStore();
+  const {
+    status,
+    generationsUsed,
+    subscribedAt,
+    isFullPayment: isFullyPaid,
+    purchasedBlocks,
+    markPaid,
+    addPurchasedBlock,
+  } = useSubscriptionStore();
+
   const siwesDuration = (useOnboardingStore((s) => s.data.siwesDuration) ?? 6) as 3 | 6 | 12;
   const fullName = useOnboardingStore((s) => s.data.fullName);
 
   const isFunaab = userEmail ? isFunaabEmail(userEmail) : false;
-  const activeNgn = isFunaab ? FUNAAB_NGN : MONTHLY_NGN;
-  const activeKobo = isFunaab ? FUNAAB_NGN_KOBO : MONTHLY_NGN_KOBO;
+  const pricePerMonth = isFunaab ? BLOCK_FUNAAB_NGN : BLOCK_NGN;
+  const pricePerMonthKobo = isFunaab ? BLOCK_FUNAAB_NGN_KOBO : BLOCK_NGN_KOBO;
 
-  const isPaid = status === "paid";
+  const totalWeeks = durationMonthsToWeeks(siwesDuration);
+  const numMonths = totalBlockCount(totalWeeks);
   const generationsLeft = Math.max(0, FREE_GENERATION_LIMIT - generationsUsed);
   const durationLabel = DURATION_LABELS[siwesDuration];
 
+  // Old monthly subscribers (paid, no block rows) → all unlocked
+  const isOldMonthlyPaid = status === "paid" && purchasedBlocks.length === 0 && !isFullyPaid;
+  const isAllUnlocked = isFullyPaid || isOldMonthlyPaid;
+
+  const totalSelected = selected.length;
+  const totalPrice = totalSelected * pricePerMonth;
+  const totalKobo = totalSelected * pricePerMonthKobo;
+
+  function toggleMonth(monthNum: number) {
+    setSelected((prev) =>
+      prev.includes(monthNum) ? prev.filter((m) => m !== monthNum) : [...prev, monthNum]
+    );
+  }
+
   async function handlePay() {
+    if (selected.length === 0) return;
     if (typeof window === "undefined" || !window.PaystackPop) {
       setError("Payment system is loading — wait a moment and try again.");
       return;
     }
-    setLoading(true);
+    setPaying(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       setError("Session expired. Please refresh and log in again.");
-      setLoading(false);
+      setPaying(false);
       return;
     }
 
+    const monthLabel = selected.length === 1
+      ? `Month ${selected[0]}`
+      : `Months ${selected.sort((a, b) => a - b).join(", ")}`;
+
     const handler = window.PaystackPop.setup({
       key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-      email: user.email ?? "",
-      amount: activeKobo,
+      email: userEmail ?? session.user.email ?? "",
+      amount: totalKobo,
       currency: "NGN",
       metadata: {
         custom_fields: [
-          { display_name: "Name", variable_name: "name", value: fullName ?? user.email },
-          { display_name: "Plan", variable_name: "plan", value: "monthly" },
-          { display_name: "User ID", variable_name: "user_id", value: user.id },
+          { display_name: "Name", variable_name: "name", value: fullName ?? userEmail },
+          { display_name: "Months", variable_name: "months", value: monthLabel },
+          { display_name: "User ID", variable_name: "user_id", value: userId ?? session.user.id },
         ],
       },
       callback: (response: { reference: string }) => {
-        supabase.auth.getSession()
-          .then(({ data: { session } }) =>
-            fetch("/api/payment/verify", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session?.access_token}`,
-              },
-              body: JSON.stringify({ reference: response.reference, planId: "monthly" }),
-            })
-          )
+        fetch("/api/payment/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            reference: response.reference,
+            planId: selected.length === 1 ? `block_${selected[0]}` : "blocks",
+            blockNumbers: selected,
+          }),
+        })
           .then((res) => {
             if (!res.ok) throw new Error("Verification failed");
-            return res.json() as Promise<{ expiresAt: string | null; isFullPayment: boolean; subscribedAt: string | null }>;
+            return res.json() as Promise<{ ok: boolean; blockNumbers: number[]; purchasedAt: string }>;
           })
-          .then(({ expiresAt, isFullPayment, subscribedAt }) => {
-            markPaid(expiresAt ?? null, isFullPayment ?? false, subscribedAt ?? undefined);
+          .then(({ blockNumbers }) => {
+            blockNumbers.forEach((bn) => addPurchasedBlock(bn));
+            markPaid(null, false, new Date().toISOString());
+            setSelected([]); // clear selection after purchase
           })
           .catch(() => {
             setError(
-              "Payment received but verification failed. Reference: " +
-              response.reference +
-              " — contact support."
+              `Payment received but verification failed. Reference: ${response.reference} — contact support.`
             );
           })
-          .finally(() => setLoading(false));
+          .finally(() => setPaying(false));
       },
-      onClose: () => setLoading(false),
+      onClose: () => setPaying(false),
     });
 
     handler.openIframe();
   }
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8" style={{ maxWidth: 560, margin: "0 auto" }}>
+    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8" style={{ maxWidth: 580, margin: "0 auto", paddingBottom: totalSelected > 0 ? 100 : undefined }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: 24 }}>
         <div style={{
           fontSize: 10, fontFamily: "var(--font-dm-mono)", fontWeight: 700,
           letterSpacing: "0.14em", textTransform: "uppercase", color: "#8C5A3C", marginBottom: 8,
@@ -119,148 +156,151 @@ export default function PricingPage() {
           Plans &amp; Pricing
         </div>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "var(--text)" }}>
-          Unlock your full logbook
+          Unlock your logbook
         </h1>
         <p style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6 }}>
           Your SIWES duration: <strong style={{ color: "var(--text)" }}>{durationLabel}</strong>.
-          {isPaid
-            ? " Your subscription is active."
-            : " Subscribe monthly to keep generating AI logbook entries."}
+          Select one or more months to unlock and pay once.
         </p>
       </div>
 
-      {/* Status pill */}
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 8,
-        padding: "8px 16px", borderRadius: 20, marginBottom: 28,
-        background: isPaid ? "rgba(34,197,94,0.08)" : "rgba(140,90,60,0.08)",
-        border: `1px solid ${isPaid ? "rgba(34,197,94,0.25)" : "rgba(140,90,60,0.25)"}`,
-      }}>
-        <span style={{ fontSize: 13 }}>{isPaid ? "✓" : "◉"}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: isPaid ? "#15803d" : "#8C5A3C" }}>
-          {isPaid
-            ? "Active subscription"
-            : `Free plan · ${generationsLeft} of ${FREE_GENERATION_LIMIT} AI entries remaining`}
-        </span>
-      </div>
-
-      {/* Billing dates — shown when subscribed */}
-      {isPaid && subscribedAt && (
+      {/* Free generation status */}
+      {status === "free" && (
         <div style={{
-          marginBottom: 24, padding: "14px 18px", borderRadius: 12,
-          background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.2)",
-          display: "flex", flexDirection: "column", gap: 6,
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "8px 16px", borderRadius: 20, marginBottom: 24,
+          background: "rgba(140,90,60,0.08)", border: "1px solid rgba(140,90,60,0.25)",
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#15803d", marginBottom: 2 }}>
-            Subscription dates
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-            <span style={{ color: "var(--text-muted)" }}>Subscribed on</span>
-            <strong style={{ color: "var(--text)" }}>
-              {new Date(subscribedAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
-            </strong>
-          </div>
-          {nextBillingDate && (
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-              <span style={{ color: "var(--text-muted)" }}>Next billing date</span>
-              <strong style={{ color: "#8C5A3C" }}>
-                {new Date(nextBillingDate).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
-              </strong>
-            </div>
-          )}
-          <p style={{ margin: 0, marginTop: 4, fontSize: 11, color: "var(--text-muted)" }}>
-            No auto-renewal — you must manually resubscribe when your month ends.
-          </p>
+          <span style={{ fontSize: 13 }}>◉</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#8C5A3C" }}>
+            Free preview · {generationsLeft} of {FREE_GENERATION_LIMIT} AI entries remaining in Week 1
+          </span>
         </div>
       )}
 
-      {/* Currency toggle */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
-        {(["ngn", "usd"] as const).map((c) => (
-          <button key={c} onClick={() => setCurrency(c)} style={{
-            padding: "5px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-            border: currency === c ? "none" : "1.5px solid var(--border)",
-            background: currency === c ? "#8C5A3C" : "transparent",
-            color: currency === c ? "#fff" : "var(--text-muted)", cursor: "pointer",
-          }}>
-            {c === "ngn" ? "₦ NGN" : "$ USD"}
-          </button>
-        ))}
-        {currency === "usd" && (
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>display only — charged in NGN</span>
-        )}
-      </div>
+      {/* FUNAAB discount badge */}
+      {isFunaab && (
+        <div style={{
+          marginBottom: 20, padding: "9px 13px", borderRadius: 8,
+          background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.3)",
+          fontSize: 12, color: "#15803d", display: "flex", alignItems: "center", gap: 7,
+        }}>
+          <span style={{ fontSize: 14 }}>🎓</span>
+          <span>
+            <strong>FUNAAB student discount applied</strong> — ₦{(BLOCK_NGN - BLOCK_FUNAAB_NGN).toLocaleString()} off every month.
+          </span>
+        </div>
+      )}
 
-      {/* Monthly plan card */}
-      <div style={{
-        padding: "22px 22px", borderRadius: 16,
-        border: "2px solid #8C5A3C",
-        background: "rgba(140,90,60,0.05)",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Monthly Plan</div>
-            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.5 }}>
-              Unlimited AI logbook generation, edit &amp; regenerate any entry, Activity Bank access.
-              Renew each month manually — no auto-billing.
+      {/* Selection hint */}
+      {!isAllUnlocked && numMonths > 0 && (
+        <div style={{ marginBottom: 16, fontSize: 12, color: "var(--text-muted)" }}>
+          Tap a month to select it. Select multiple to pay for them all at once.
+        </div>
+      )}
+
+      {/* Month list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+        {/* Week 1 — Free */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 18px", borderRadius: 12,
+          border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.05)",
+        }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-dm-mono)", fontWeight: 700, color: "var(--muted)" }}>
+                WEEK 1
+              </span>
+              <span style={{
+                padding: "2px 8px", borderRadius: 10, fontSize: 9, fontWeight: 700,
+                fontFamily: "var(--font-dm-mono)", background: "rgba(34,197,94,0.15)",
+                color: "#15803d", letterSpacing: "0.04em",
+              }}>
+                FREE
+              </span>
             </div>
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-              {[
-                "Unlimited AI entry generation",
-                "Edit and regenerate any entry",
-                "Activity Bank + Defense Prep tools",
-                "No auto-renewal — you pay when ready",
-              ].map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--text-muted)" }}>
-                  <span style={{ color: "#8C5A3C", flexShrink: 0 }}>✓</span>
-                  {item}
-                </div>
-              ))}
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
+              Week 1 — free preview, up to 5 AI entries
             </div>
           </div>
-
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            {/* Strikethrough original price for FUNAAB students */}
-            {isFunaab && currency === "ngn" && (
-              <div style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "line-through" }}>
-                ₦{MONTHLY_NGN.toLocaleString()}
-              </div>
-            )}
-            <div style={{ fontWeight: 900, fontSize: 28, color: "#8C5A3C" }}>
-              {currency === "ngn" ? `₦${activeNgn.toLocaleString()}` : `$${MONTHLY_USD.toFixed(2)}`}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>per month</div>
-            {isFunaab && (
-              <div style={{ fontSize: 10, color: "#15803d", fontWeight: 600, marginTop: 2 }}>
-                🎓 FUNAAB discount
-              </div>
-            )}
-          </div>
+          <span style={{ fontSize: 16, color: "#15803d" }}>✓</span>
         </div>
 
-        <button
-          onClick={handlePay}
-          disabled={loading || isPaid}
-          style={{
-            marginTop: 18, width: "100%", padding: "13px 0", borderRadius: 10,
-            background: isPaid
-              ? "rgba(34,197,94,0.1)"
-              : loading
-              ? "rgba(140,90,60,0.4)"
-              : "#8C5A3C",
-            color: isPaid ? "#15803d" : "#fff",
-            fontWeight: 700, fontSize: 14,
-            border: isPaid ? "1px solid rgba(34,197,94,0.3)" : "none",
-            cursor: isPaid || loading ? "default" : "pointer",
-            transition: "all 0.15s",
-          }}
-        >
-          {isPaid
-            ? "✓ Subscription active"
-            : loading
-            ? "Processing…"
-            : `Subscribe for ${currency === "ngn" ? `₦${activeNgn.toLocaleString()}` : `$${MONTHLY_USD.toFixed(2)}`}/month →`}
-        </button>
+        {/* Paid months */}
+        {Array.from({ length: numMonths }, (_, i) => {
+          const monthNum = i + 1;
+          const { start, end } = blockWeekRange(monthNum, totalWeeks);
+          const isPurchased = isAllUnlocked || purchasedBlocks.includes(monthNum);
+          const isSelected = selected.includes(monthNum);
+
+          return (
+            <div
+              key={monthNum}
+              onClick={() => !isPurchased && toggleMonth(monthNum)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 18px", borderRadius: 12, gap: 12,
+                border: isPurchased
+                  ? "1px solid rgba(34,197,94,0.35)"
+                  : isSelected
+                  ? "2px solid #8C5A3C"
+                  : "1px solid rgba(140,90,60,0.2)",
+                background: isPurchased
+                  ? "rgba(34,197,94,0.04)"
+                  : isSelected
+                  ? "rgba(140,90,60,0.08)"
+                  : "var(--card)",
+                cursor: isPurchased ? "default" : "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              {/* Checkbox */}
+              {!isPurchased && (
+                <div style={{
+                  width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                  border: isSelected ? "none" : "1.5px solid rgba(140,90,60,0.4)",
+                  background: isSelected ? "#8C5A3C" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {isSelected && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
+                </div>
+              )}
+
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>
+                    Month {monthNum}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                    Weeks {start}–{end}
+                  </span>
+                  {isPurchased && (
+                    <span style={{
+                      padding: "2px 8px", borderRadius: 10, fontSize: 9, fontWeight: 700,
+                      fontFamily: "var(--font-dm-mono)", background: "rgba(34,197,94,0.12)",
+                      color: "#15803d", letterSpacing: "0.04em",
+                    }}>
+                      UNLOCKED
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
+                  1 month of unlimited AI logbook generation
+                </div>
+              </div>
+
+              {isPurchased ? (
+                <span style={{ fontSize: 16, color: "#15803d", flexShrink: 0 }}>✓</span>
+              ) : (
+                <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? "#8C5A3C" : "var(--muted)", flexShrink: 0 }}>
+                  ₦{pricePerMonth.toLocaleString()}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {error && (
@@ -273,9 +313,63 @@ export default function PricingPage() {
         </div>
       )}
 
+      {/* Billing info for old monthly subscribers */}
+      {isOldMonthlyPaid && subscribedAt && (
+        <div style={{
+          marginTop: 20, padding: "14px 18px", borderRadius: 12,
+          background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.2)",
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#15803d", marginBottom: 4 }}>
+            Active subscription
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+            Subscribed on{" "}
+            <strong style={{ color: "var(--text)" }}>
+              {new Date(subscribedAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
+            </strong>
+            . All months unlocked.
+          </div>
+        </div>
+      )}
+
       <p style={{ marginTop: 16, textAlign: "center", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6 }}>
-        Secured by Paystack · No auto-renewals
+        Secured by Paystack · No auto-renewals · Pay only for what you need
       </p>
+
+      {/* Sticky pay bar — appears when months are selected */}
+      {totalSelected > 0 && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          padding: "14px 20px",
+          background: "var(--surface)",
+          borderTop: "1px solid var(--border)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 12, zIndex: 50,
+          boxShadow: "0 -4px 24px rgba(0,0,0,0.12)",
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+              {totalSelected} month{totalSelected > 1 ? "s" : ""} selected
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Total: ₦{totalPrice.toLocaleString()}
+            </div>
+          </div>
+          <button
+            onClick={handlePay}
+            disabled={paying}
+            style={{
+              padding: "12px 24px", borderRadius: 12,
+              background: paying ? "rgba(140,90,60,0.4)" : "#8C5A3C",
+              color: "#fff", fontWeight: 700, fontSize: 14,
+              border: "none", cursor: paying ? "default" : "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {paying ? "Processing…" : `Pay ₦${totalPrice.toLocaleString()} →`}
+          </button>
+        </div>
+      )}
 
       <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
     </div>

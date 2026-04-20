@@ -28,6 +28,8 @@ export interface WeekEntry {
   days: DayEntry[];
   isCurrentWeek: boolean;
   isFutureWeek: boolean;
+  isLocked: boolean;     // true if this block hasn't been purchased yet
+  blockNumber: number;   // 0 = free (week 1), 1+ = paid block
   completedDaysCount: number;
   totalAttendanceDays: number;
   exportStatus: "none" | "pending" | "exported";

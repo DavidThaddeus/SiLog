@@ -23,6 +23,44 @@ function WeekCardInner({ week }: Props) {
       ? (week.completedDaysCount / week.totalAttendanceDays) * 100
       : 0;
 
+  // ── Locked week — plain dimmed card, no lock text (banner handles the CTA) ──
+  if (week.isLocked) {
+    return (
+      <div
+        id={`week-${week.weekNumber}`}
+        style={{
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          overflow: "hidden",
+          opacity: 0.45,
+          background: "var(--bg)",
+        }}
+      >
+        <div
+          className="gap-2 sm:gap-3 px-3 sm:px-5"
+          style={{
+            display: "flex", alignItems: "center",
+            paddingTop: 12, paddingBottom: 12,
+            background: "var(--surface)", userSelect: "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: "var(--font-dm-mono)", fontSize: 10, fontWeight: 700,
+              color: "var(--muted)", letterSpacing: "0.06em", flexShrink: 0,
+            }}>
+              WK {String(week.weekNumber).padStart(2, "0")}
+            </div>
+            <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              {fmtDate(week.startDate)} – {fmtDate(week.endDate)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal / future week card ───────────────────────────────────────────────
   return (
     <div
       id={`week-${week.weekNumber}`}

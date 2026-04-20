@@ -13,6 +13,7 @@ interface SubscriptionStore {
   readOnly: boolean;
   callsToday: number | null;
   dailyLimit: number | null;
+  purchasedBlocks: number[];  // block numbers the user has paid for
   setSubscription: (
     status: "free" | "paid",
     expiresAt: string | null,
@@ -24,6 +25,8 @@ interface SubscriptionStore {
   setGenerationsUsed: (n: number) => void;
   setReadOnly: (v: boolean) => void;
   setDailyUsage: (callsToday: number, dailyLimit: number) => void;
+  setPurchasedBlocks: (blocks: number[]) => void;
+  addPurchasedBlock: (block: number) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionStore>()((set) => ({
@@ -35,6 +38,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()((set) => ({
   readOnly: false,
   callsToday: null,
   dailyLimit: null,
+  purchasedBlocks: [],
   setSubscription: (status, expiresAt, generationsUsed = 0, isFullPayment = false, subscribedAt = null) =>
     set({ status, expiresAt, generationsUsed, isFullPayment, subscribedAt }),
   markPaid: (expiresAt, isFullPayment, subscribedAt = new Date().toISOString()) =>
@@ -42,4 +46,11 @@ export const useSubscriptionStore = create<SubscriptionStore>()((set) => ({
   setGenerationsUsed: (n) => set({ generationsUsed: n }),
   setReadOnly: (v) => set({ readOnly: v }),
   setDailyUsage: (callsToday, dailyLimit) => set({ callsToday, dailyLimit }),
+  setPurchasedBlocks: (blocks) => set({ purchasedBlocks: blocks }),
+  addPurchasedBlock: (block) =>
+    set((state) => ({
+      purchasedBlocks: state.purchasedBlocks.includes(block)
+        ? state.purchasedBlocks
+        : [...state.purchasedBlocks, block],
+    })),
 }));

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   if (authResult instanceof NextResponse) return authResult;
   const { user } = authResult;
 
-  const body = await req.json() as { reference: string; planId: string; upgradeMonths?: number };
+  const body = await req.json() as { reference: string; planId: string; upgradeMonths?: number; blockNumbers?: number[] };
   const { reference, planId, upgradeMonths } = body;
 
   if (!reference || !planId) {
@@ -41,6 +41,72 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Payment not successful" }, { status: 400 });
   }
 
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // ── Block / multi-month purchase ─────────────────────────────────────────────
+  if (planId.startsWith("block_") || planId === "blocks") {
+    // Resolve which block numbers this payment covers
+    let blockNumbers: number[];
+    if (planId === "blocks" && Array.isArray(body.blockNumbers) && body.blockNumbers.length > 0) {
+      blockNumbers = body.blockNumbers.filter((n) => Number.isInteger(n) && n >= 1);
+    } else if (planId.startsWith("block_")) {
+      const n = parseInt(planId.replace("block_", ""), 10);
+      if (isNaN(n) || n < 1) return NextResponse.json({ error: "Invalid block number" }, { status: 400 });
+      blockNumbers = [n];
+    } else {
+      return NextResponse.json({ error: "Invalid block numbers" }, { status: 400 });
+    }
+
+    // Idempotent upsert for every block — safe to retry
+    for (const blockNumber of blockNumbers) {
+      const { error: blockError } = await adminClient
+        .from("subscription_blocks")
+        .upsert(
+          {
+            user_id: user.id,
+            block_number: blockNumber,
+            amount_kobo: Math.round(paystackData.data.amount / blockNumbers.length),
+            paystack_reference: reference,
+          },
+          { onConflict: "user_id,block_number" }
+        );
+
+      if (blockError) {
+        console.error("[verify] block upsert error:", blockError);
+        return NextResponse.json({ error: "Database error" }, { status: 500 });
+      }
+    }
+
+    // Set subscription_status = "paid" so AI generation limit is removed
+    await adminClient
+      .from("profiles")
+      .update({ subscription_status: "paid", updated_at: new Date().toISOString() })
+      .eq("id", user.id);
+
+    // Permanent transaction log (one row for the whole transaction)
+    await adminClient.from("payment_transactions").insert({
+      user_id: user.id,
+      paystack_reference: reference,
+      plan_id: planId,
+      months_covered: blockNumbers.length,
+      amount_kobo: paystackData.data.amount,
+      currency: "NGN",
+      status: "success",
+      is_full_payment: false,
+      subscription_expires_at: null,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      blockNumbers,
+      purchasedAt: new Date().toISOString(),
+    });
+  }
+
+  // ── Legacy monthly / full plan ────────────────────────────────────────────────
   // "upgrade" = monthly subscriber paying remaining months → becomes full payer
   // Full payment = anything that is not purely "monthly" (3/6/12months or upgrade)
   const isFullPayment = planId !== "monthly";
@@ -55,12 +121,7 @@ export async function POST(req: NextRequest) {
   // months covered by this payment (used in transaction log)
   const monthsCovered = PLAN_MONTHS[planId] ?? upgradeMonths ?? 1;
 
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Update profile — core columns first (always exist), then extended columns best-effort
+  // Update profile
   const { error: profileError } = await adminClient
     .from("profiles")
     .update({
@@ -75,7 +136,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Database update failed" }, { status: 500 });
   }
 
-  // Best-effort: set is_full_payment (column added via migration — may not exist yet)
+  // Best-effort: set is_full_payment
   try {
     await adminClient
       .from("profiles")

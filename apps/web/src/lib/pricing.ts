@@ -44,6 +44,43 @@ export function computeMonthsRemaining(startDate: string, siwesDuration: number)
   return Math.max(1, siwesDuration - Math.max(0, elapsed));
 }
 
-export type PlanId = "monthly" | "full";
+export type PlanId = "monthly" | "full" | `block_${number}`;
 
 export const FREE_GENERATION_LIMIT = 5;
+
+// ── Block Pricing (weekly unlock model) ──────────────────────────────────────
+/** Standard price per 4-week block */
+export const BLOCK_NGN = 4_000;
+export const BLOCK_NGN_KOBO = BLOCK_NGN * 100;
+
+/** FUNAAB student discount per block */
+export const BLOCK_FUNAAB_NGN = 3_500;
+export const BLOCK_FUNAAB_NGN_KOBO = BLOCK_FUNAAB_NGN * 100;
+
+/**
+ * Maps a week number to its block number.
+ * Week 1 → 0 (always free). Weeks 2–5 → 1. Weeks 6–9 → 2. Etc.
+ */
+export function weekToBlock(weekNumber: number): number {
+  if (weekNumber <= 1) return 0;
+  return Math.ceil((weekNumber - 1) / 4);
+}
+
+/**
+ * Returns the week range [start, end] (inclusive) for a given block number.
+ * Pass totalWeeks to cap the end at the last week of the plan.
+ */
+export function blockWeekRange(
+  blockNumber: number,
+  totalWeeks?: number
+): { start: number; end: number } {
+  const start = (blockNumber - 1) * 4 + 2;
+  const end = totalWeeks ? Math.min(start + 3, totalWeeks) : start + 3;
+  return { start, end };
+}
+
+/** Total number of paid blocks needed for a plan of this many weeks. */
+export function totalBlockCount(totalWeeks: number): number {
+  if (totalWeeks <= 1) return 0;
+  return Math.ceil((totalWeeks - 1) / 4);
+}

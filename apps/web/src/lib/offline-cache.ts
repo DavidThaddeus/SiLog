@@ -69,6 +69,7 @@ export interface OfflineSnapshot {
     generationsUsed: number;
     isFullPayment: boolean;
     subscribedAt: string | null;
+    purchasedBlocks: number[];
   };
   weeks: WeekEntry[];
   activityBank: ActivityBankState;

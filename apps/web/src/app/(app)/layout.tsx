@@ -78,6 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           },
         });
 
+        const offlinePurchasedBlocks = offlineSnap.subscription.purchasedBlocks ?? [];
         useSubscriptionStore.getState().setSubscription(
           offlineSnap.subscription.status,
           offlineSnap.subscription.expiresAt,
@@ -85,8 +86,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           offlineSnap.subscription.isFullPayment,
           offlineSnap.subscription.subscribedAt
         );
+        useSubscriptionStore.getState().setPurchasedBlocks(offlinePurchasedBlocks);
 
-        useDashboardStore.getState().setWeeks(recalcWeekFlags(localSnap.weeks));
+        useDashboardStore.getState().setWeeks(
+          recalcWeekFlags(localSnap.weeks, offlinePurchasedBlocks, offlineSnap.subscription.status === "paid")
+        );
         useDashboardStore.setState({ activityBank: localSnap.activityBank });
 
         // Show the app immediately
@@ -137,8 +141,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           snap.subscription.subscribedAt
         );
 
+        const snapBlocks = snap.subscription.purchasedBlocks ?? [];
+        useSubscriptionStore.getState().setPurchasedBlocks(snapBlocks);
+
         if (snap.weeks.length > 0) {
-          useDashboardStore.getState().setWeeks(recalcWeekFlags(snap.weeks));
+          useDashboardStore.getState().setWeeks(
+            recalcWeekFlags(snap.weeks, snapBlocks, snap.subscription.status === "paid")
+          );
           useDashboardStore.setState({ activityBank: snap.activityBank });
         }
 
@@ -166,6 +175,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             companyDepartment: "",
           },
         });
+        useSubscriptionStore.getState().setPurchasedBlocks([]);
         router.replace("/login");
       }
     });
@@ -229,7 +239,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // ── Inner fetch function (extracted so it can be timeout-raced) ─────────────
   async function fetchAndPopulate(userId: string, routerRef: typeof router, isBackgroundRefresh = false) {
     // Single batched query for all profile columns — replaces 5 separate round-trips
-    const [profileResult, lastPayment, savedWeeks] = await Promise.all([
+    const [profileResult, lastPayment, savedWeeks, blocksResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, department, university, company_name, company_dept, industry, start_date, attendance_days, has_personal_study, study_framing, siwes_duration_months, subscription_status, subscription_expires_at, ai_generations_used, is_full_payment")
@@ -246,6 +256,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           .maybeSingle()
       ).then((r) => (r.error ? null : r.data)).catch(() => null),
       loadUserData(userId),
+      Promise.resolve(
+        supabase
+          .from("subscription_blocks")
+          .select("block_number")
+          .eq("user_id", userId)
+      ).then((r) => (r.error ? [] : (r.data ?? []))).catch(() => []),
     ]);
 
     const profile = profileResult.data;
@@ -257,6 +273,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     const siwesDuration = ((profile.siwes_duration_months as number) ?? 6) as 3 | 6 | 12;
+    const purchasedBlocks = (blocksResult as { block_number: number }[]).map((b) => b.block_number);
 
     useOnboardingStore.setState({
       data: {
@@ -301,6 +318,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       isFullPayment,
       subscribedAt
     );
+    useSubscriptionStore.getState().setPurchasedBlocks(purchasedBlocks);
 
     // 2. Saved weeks already loaded in parallel above — no extra await needed
     const totalWeeks = durationMonthsToWeeks(siwesDuration);
@@ -318,8 +336,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     if (weeksSource && weeksSource.weeks.length > 0 && weeksSource.weeks.length === totalWeeks) {
       // Use saved data (local-first if newer, otherwise Supabase)
-      // recalcWeekFlags ensures isCurrentWeek/isFutureWeek reflect today's real date
-      useDashboardStore.getState().setWeeks(recalcWeekFlags(weeksSource.weeks));
+      // recalcWeekFlags ensures isCurrentWeek/isFutureWeek/isLocked reflect today's real state
+      useDashboardStore.getState().setWeeks(
+        recalcWeekFlags(weeksSource.weeks, purchasedBlocks, subStatus === "paid")
+      );
       useDashboardStore.setState({ activityBank: bankSource!.activityBank });
 
       // If we used local data that's ahead of Supabase, push it up now
@@ -331,7 +351,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } else if (profile.start_date && profile.attendance_days?.length) {
       // Generate fresh weeks — either first login or duration was changed
       useDashboardStore.getState().setWeeks(
-        generateWeeksFromProfile(profile.start_date, profile.attendance_days, totalWeeks)
+        recalcWeekFlags(
+          generateWeeksFromProfile(profile.start_date, profile.attendance_days, totalWeeks),
+          purchasedBlocks,
+          subStatus === "paid"
+        )
       );
       useDashboardStore.setState({
         activityBank: (bankSource ?? saved)?.activityBank ?? { items: [], bankedCount: 0, emptyCoverageCount: 0 },
@@ -370,6 +394,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           generationsUsed: genUsed,
           isFullPayment,
           subscribedAt,
+          purchasedBlocks,
         },
         weeks,
         activityBank,

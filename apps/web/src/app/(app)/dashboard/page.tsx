@@ -7,6 +7,36 @@ import { ProgressHeader } from "@/components/dashboard/ProgressHeader";
 import { WeekCard } from "@/components/dashboard/WeekCard";
 import { ActivityBankWidget } from "@/components/dashboard/ActivityBankWidget";
 import { useInitWeeks } from "@/hooks/useInitWeeks";
+import type { WeekEntry } from "@/types/dashboard";
+
+function BlockLockBanner({ blockNumber }: { blockNumber: number }) {
+  const router = useRouter();
+  return (
+    <div
+      onClick={() => router.push("/pricing")}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "9px 16px", borderRadius: 10, cursor: "pointer",
+        background: "rgba(140,90,60,0.06)",
+        border: "1px dashed rgba(140,90,60,0.35)",
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(140,90,60,0.1)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(140,90,60,0.06)")}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 14 }}>🔐</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#8C5A3C", fontFamily: "var(--font-dm-mono)" }}>
+          Month {blockNumber}
+        </span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· locked</span>
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color: "#8C5A3C" }}>
+        Unlock this month →
+      </span>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -84,9 +114,23 @@ export default function DashboardPage() {
           <ProgressHeader />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {weeks.map((week) => (
-              <WeekCard key={week.weekNumber} week={week} />
-            ))}
+            {weeks.map((week: WeekEntry, idx: number) => {
+              // Show ONE banner at the start of each locked block group
+              const isFirstOfLockedBlock =
+                week.isLocked &&
+                (idx === 0 || weeks[idx - 1].blockNumber !== week.blockNumber || !weeks[idx - 1].isLocked);
+
+              return (
+                <div key={week.weekNumber}>
+                  {isFirstOfLockedBlock && (
+                    <div style={{ marginBottom: 4 }}>
+                      <BlockLockBanner blockNumber={week.blockNumber} />
+                    </div>
+                  )}
+                  <WeekCard week={week} />
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -1,5 +1,11 @@
 import type { WeekEntry, DayEntry, DayStatus, ActivityBankState, BankedActivity } from "@/types/dashboard";
 
+/** Local copy — avoids circular module init with pricing.ts under Turbopack. */
+function weekToBlock(weekNumber: number): number {
+  if (weekNumber <= 1) return 0;
+  return Math.ceil((weekNumber - 1) / 4);
+}
+
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] as const;
 const ATTENDANCE_DAYS = new Set(["Monday", "Wednesday", "Friday"]);
 
@@ -199,20 +205,38 @@ function makeDay(
 // attendance days — no mock data, no pre-filled entries.
 
 /**
- * Recalculate isCurrentWeek and isFutureWeek on every week in a saved array.
+ * Recalculate isCurrentWeek, isFutureWeek, isLocked, and blockNumber on every week.
  * Call this every time saved weeks are loaded from Supabase or localStorage so
- * the flags always reflect today's real date, not the date the data was generated.
+ * the flags always reflect today's real date and current purchase state.
+ *
+ * isPaidUser=true with purchasedBlocks=[] → old monthly subscriber → all weeks unlocked.
+ * isPaidUser=true with purchasedBlocks=[1,2] → block payer → only those blocks unlocked.
+ * isPaidUser=false → free user → only week 1 (block 0) unlocked.
  */
-export function recalcWeekFlags(weeks: WeekEntry[]): WeekEntry[] {
+export function recalcWeekFlags(
+  weeks: WeekEntry[],
+  purchasedBlocks: number[] = [],
+  isPaidUser = false
+): WeekEntry[] {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const currentWeekStart = toISO(mondayOf(now));
+  const purchasedSet = new Set(purchasedBlocks);
 
-  return weeks.map((w) => ({
-    ...w,
-    isCurrentWeek: w.startDate === currentWeekStart,
-    isFutureWeek: w.startDate > currentWeekStart,
-  }));
+  // Old monthly subscribers (paid, no block rows) get all weeks unlocked for backward compat
+  const allUnlocked = isPaidUser && purchasedBlocks.length === 0;
+
+  return weeks.map((w) => {
+    const blockNumber = weekToBlock(w.weekNumber);
+    const isLocked = !allUnlocked && blockNumber > 0 && !purchasedSet.has(blockNumber);
+    return {
+      ...w,
+      blockNumber,
+      isLocked,
+      isCurrentWeek: w.startDate === currentWeekStart,
+      isFutureWeek: w.startDate > currentWeekStart,
+    };
+  });
 }
 
 /** Convert SIWES duration in months to the number of logbook weeks. */
@@ -255,13 +279,16 @@ export function generateWeeksFromProfile(
 
     const attendanceDays = days.filter((d) => d.isAttendanceDay);
 
+    const weekNum = w + 1;
     return {
-      weekNumber: w + 1,
+      weekNumber: weekNum,
       startDate: toISO(weekStart),
       endDate: toISO(weekEnd),
       days,
       isCurrentWeek: isCurrent,
       isFutureWeek: isFuture,
+      isLocked: false,           // recalcWeekFlags sets this correctly on every load
+      blockNumber: weekToBlock(weekNum),
       completedDaysCount: 0,
       totalAttendanceDays: attendanceDays.length,
       exportStatus: "none" as const,
@@ -297,6 +324,8 @@ export function generateMockWeeks(): WeekEntry[] {
       days,
       isCurrentWeek: isCurrent,
       isFutureWeek: isFuture,
+      isLocked: false,
+      blockNumber: 0,
       completedDaysCount: completedDays,
       totalAttendanceDays: attendanceDays.length,
       exportStatus: w < currentWeekIndex - 1 ? "exported" : "none",
