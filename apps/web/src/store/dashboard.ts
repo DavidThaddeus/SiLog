@@ -184,7 +184,7 @@ export const useDashboardStore = create<DashboardStore>()(
           } else {
             updated = d;
           }
-          if (updated.hasNotes && updated.isAttendanceDay) completedDaysCount++;
+          if (updated.hasNotes) completedDaysCount++;
           return updated;
         });
 

@@ -229,12 +229,14 @@ export function recalcWeekFlags(
   return weeks.map((w) => {
     const blockNumber = weekToBlock(w.weekNumber);
     const isLocked = !allUnlocked && blockNumber > 0 && !purchasedSet.has(blockNumber);
+    const completedDaysCount = w.days.filter((d) => d.hasNotes).length;
     return {
       ...w,
       blockNumber,
       isLocked,
       isCurrentWeek: w.startDate === currentWeekStart,
       isFutureWeek: w.startDate > currentWeekStart,
+      completedDaysCount,
     };
   });
 }

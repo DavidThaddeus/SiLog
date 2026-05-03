@@ -187,7 +187,7 @@ export function AIChatPanel({ currentNotes, dayName, onApplySuggestion, notesLen
             fontFamily: "var(--font-dm-mono)",
           }}
         >
-          Claude
+          SiLog AI
         </span>
       </div>
 

@@ -121,7 +121,7 @@ export function ProgressHeader() {
           {
             label: "This week",
             value: currentWeek
-              ? `${currentWeek.completedDaysCount}/${currentWeek.totalAttendanceDays} days`
+              ? `${currentWeek.completedDaysCount}/5 days`
               : "—",
           },
         ].map(({ label, value }) => (

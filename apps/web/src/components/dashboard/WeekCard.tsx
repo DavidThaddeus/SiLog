@@ -18,24 +18,23 @@ function fmtDate(iso: string): string {
 function WeekCardInner({ week }: Props) {
   const { expandedWeekNumber, toggleWeek } = useDashboardStore();
   const isOpen = expandedWeekNumber === week.weekNumber;
-  const completionPct =
-    week.totalAttendanceDays > 0
-      ? (week.completedDaysCount / week.totalAttendanceDays) * 100
-      : 0;
+  const completionPct = (week.completedDaysCount / 5) * 100;
 
-  // ── Locked week — plain dimmed card, no lock text (banner handles the CTA) ──
+  // ── Locked week — shows week number + day preview; banner handles the CTA ──
   if (week.isLocked) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return (
       <div
         id={`week-${week.weekNumber}`}
         style={{
-          border: "1px solid var(--border)",
+          border: "1px dashed rgba(140,90,60,0.2)",
           borderRadius: 12,
           overflow: "hidden",
-          opacity: 0.45,
           background: "var(--bg)",
         }}
       >
+        {/* Header */}
         <div
           className="gap-2 sm:gap-3 px-3 sm:px-5"
           style={{
@@ -55,6 +54,57 @@ function WeekCardInner({ week }: Props) {
               {fmtDate(week.startDate)} – {fmtDate(week.endDate)}
             </span>
           </div>
+          <span style={{
+            fontSize: 9, fontFamily: "var(--font-dm-mono)",
+            color: "rgba(140,90,60,0.6)", letterSpacing: "0.06em",
+          }}>
+            🔒 LOCKED
+          </span>
+        </div>
+
+        {/* Day preview — shows all 5 days so student knows what they'd log */}
+        <div style={{ borderTop: "1px solid var(--border)" }}>
+          {week.days.map((day) => {
+            const dayDate = new Date(day.date + "T00:00:00");
+            const isFutureDay = dayDate > today;
+            return (
+              <div
+                key={day.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "7px 20px",
+                  opacity: isFutureDay ? 0.35 : 0.55,
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <div style={{ width: 64, flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text)" }}>
+                    {fmtDate(day.date)}
+                  </div>
+                  <div style={{
+                    fontSize: 9, fontFamily: "var(--font-dm-mono)",
+                    color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em",
+                  }}>
+                    {day.dayName.slice(0, 3)}
+                  </div>
+                </div>
+                <div style={{ flex: 1, fontSize: 11, color: "var(--muted)", fontStyle: "italic" }}>
+                  {isFutureDay
+                    ? "Future — not yet reached"
+                    : day.isAttendanceDay
+                      ? "Unlock to log this day"
+                      : "Non-attendance day"}
+                </div>
+                {!isFutureDay && day.isAttendanceDay && (
+                  <span style={{ fontSize: 9, color: "rgba(140,90,60,0.5)", fontFamily: "var(--font-dm-mono)" }}>
+                    🔒
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -164,7 +214,7 @@ function WeekCardInner({ week }: Props) {
                 color: "var(--muted)",
               }}
             >
-              {week.completedDaysCount}/{week.totalAttendanceDays}
+              {week.completedDaysCount}/5
             </span>
           </div>
         )}

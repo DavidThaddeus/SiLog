@@ -26,10 +26,33 @@ const STEPS = [
 ];
 
 export default function OnboardingPage() {
-  const { currentStep } = useOnboardingStore();
+  const { currentStep, reset } = useOnboardingStore();
   const router = useRouter();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Guard: if the user already has a completed profile, send them to dashboard.
+  // This prevents the browser back button from re-opening onboarding after completion.
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setChecking(false); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("start_date")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.start_date) {
+        // Already onboarded — boot them to dashboard and block back navigation
+        router.replace("/dashboard");
+        return;
+      }
+      setChecking(false);
+    })();
+  }, [router]);
 
   // Force light mode on onboarding — dark mode only available inside the app
   useEffect(() => {
@@ -40,6 +63,8 @@ export default function OnboardingPage() {
       else document.documentElement.removeAttribute("data-theme");
     };
   }, []);
+
+  if (checking) return null;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -113,7 +138,8 @@ export default function OnboardingPage() {
       }).catch(() => {});
     }
 
-    router.push("/dashboard");
+    reset();
+    router.replace("/dashboard");
   };
 
   return (

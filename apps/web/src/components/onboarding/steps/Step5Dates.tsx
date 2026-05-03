@@ -19,7 +19,6 @@ const DURATION_OPTIONS: { value: 3 | 6 | 12; label: string; weeks: number; detai
   { value: 12, label: "1 Year",    weeks: 52, detail: "52 weeks — extended placement" },
 ];
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** Format a local ISO date string (YYYY-MM-DD) to a readable display. */
 function formatDisplay(iso: string): string {
@@ -42,13 +41,6 @@ function addWeeks(iso: string, weeks: number): string {
   return `${ey}-${em}-${ed}`;
 }
 
-/** Check if a date string is a weekday (Mon–Fri). */
-function isWeekday(iso: string): boolean {
-  if (!iso) return true;
-  const [y, m, d] = iso.split("-").map(Number);
-  const day = new Date(y, m - 1, d).getDay();
-  return day >= 1 && day <= 5;
-}
 
 export function Step5Dates({ onComplete: _onComplete }: Props) {
   const { data, setField, nextStep, prevStep } = useOnboardingStore();
@@ -58,8 +50,11 @@ export function Step5Dates({ onComplete: _onComplete }: Props) {
   const selectedOption = DURATION_OPTIONS.find((o) => o.value === duration) ?? DURATION_OPTIONS[1];
   const endDateISO = addWeeks(data.startDate ?? "", selectedOption.weeks);
 
-  // Warn if selected start date is a weekend
-  const startIsWeekend = data.startDate ? !isWeekday(data.startDate) : false;
+  // True when selected date is not a Monday (to drive warning display)
+  const startIsNotMonday = data.startDate ? (() => {
+    const [y, m, d] = data.startDate!.split("-").map(Number);
+    return new Date(y, m - 1, d).getDay() !== 1;
+  })() : false;
 
   const canContinue = !!(data.startDate && data.supervisorName?.trim());
 
@@ -128,25 +123,23 @@ export function Step5Dates({ onComplete: _onComplete }: Props) {
             onBlur={() => setFocused(null)}
           />
 
-          {/* Weekend warning */}
-          {startIsWeekend && (
-            <p className="text-[11px] mt-1.5" style={{ color: "#dc2626" }}>
-              ⚠ That date falls on a{" "}
-              {DAY_NAMES[new Date(
-                ...data.startDate!.split("-").map(Number) as [number, number, number]
-              ).getDay()]}. SIWES typically starts on a Monday — please confirm your date.
-            </p>
-          )}
+          {/* Weekend/non-Monday warning */}
+          {data.startDate && (() => {
+            const [y, m, d] = data.startDate!.split("-").map(Number);
+            const dayIndex = new Date(y, m - 1, d).getDay();
+            const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayIndex];
+            const isMonday = dayIndex === 1;
+            if (isMonday) return null;
+            return (
+              <p className="text-[11px] mt-1.5" style={{ color: "#dc2626" }}>
+                ⚠ That date falls on a {dayName}. SIWES typically starts on a Monday — please confirm your date.
+              </p>
+            );
+          })()}
 
           {/* End date preview */}
-          {data.startDate && !startIsWeekend && (
-            <p className="text-[11px] mt-1.5" style={{ color: "#8C5A3C" }}>
-              {selectedOption.weeks}-week programme ends approximately{" "}
-              <strong>{formatDisplay(endDateISO)}</strong>
-            </p>
-          )}
-          {data.startDate && startIsWeekend && endDateISO && (
-            <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>
+          {data.startDate && endDateISO && (
+            <p className="text-[11px] mt-1" style={{ color: startIsNotMonday ? "var(--text-muted)" : "#8C5A3C" }}>
               Approximate end: <strong>{formatDisplay(endDateISO)}</strong>
             </p>
           )}

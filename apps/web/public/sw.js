@@ -1,4 +1,4 @@
-const CACHE_NAME = 'silog-v2';
+const CACHE_NAME = 'silog-v3';
 
 // Only cache static assets — never the app HTML or JS chunks
 const STATIC_ASSETS = [
@@ -46,9 +46,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Static assets (images, fonts, icons): cache-first
-  // These never change so serving from cache is safe and fast
+  // Only cache truly immutable assets — NOT JS/CSS chunks which change on every build
   if (
-    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/_next/static/media/') ||
     STATIC_ASSETS.includes(url.pathname)
   ) {
     event.respondWith(
