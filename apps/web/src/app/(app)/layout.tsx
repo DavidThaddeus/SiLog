@@ -27,8 +27,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isInitializingRef = useRef(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error || !session) {
+        // Invalid / missing refresh token — clear stale localStorage tokens and redirect
+        await supabase.auth.signOut();
         router.replace("/login");
         return;
       }
@@ -157,9 +159,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // On sign-out: wipe store so next user starts clean, then redirect
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
+    // On sign-out or failed token refresh: wipe store so next user starts clean, then redirect
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
         userIdRef.current = null;
         useDashboardStore.setState({
           weeks: [],

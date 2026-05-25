@@ -549,12 +549,12 @@ keyActivities: 2–4 short past-tense phrases. progressChartEntry: ALL CAPS noun
 
   try {
     const { callAI } = await import("@/lib/ai-provider");
-    // Short: max 350 words (~473 tokens) + JSON overhead (~130) = 603 → ceiling 650
-    // Long:  max 450 words (~608 tokens) + JSON overhead (~130) = 738 → ceiling 800
+    // Short: ~350 words + <u> tag overhead + \n escapes + JSON wrapper → 900 tokens
+    // Long:  ~450 words + overhead → 1100 tokens
     const result = await callAI({
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
-      maxTokens: isShortNotes ? 650 : 800,
+      maxTokens: isShortNotes ? 900 : 1100,
       temperature: 0.2,
       jsonMode: true,
     });
@@ -563,8 +563,40 @@ keyActivities: 2–4 short past-tense phrases. progressChartEntry: ALL CAPS noun
     );
     const cleaned = result.text
       .replace(/^```(?:json)?\n?/, "")
-      .replace(/\n?```$/, "");
-    const parsed: GenerateEntryResponse = JSON.parse(cleaned);
+      .replace(/\n?```$/, "")
+      .trim();
+
+    // Repair literal newlines/carriage-returns inside JSON string values
+    // (some models emit these instead of \n, breaking JSON.parse)
+    function repairJSONStrings(src: string): string {
+      let out = "";
+      let inStr = false;
+      let esc = false;
+      for (let i = 0; i < src.length; i++) {
+        const c = src[i];
+        if (esc) { out += c; esc = false; continue; }
+        if (c === "\\" && inStr) { out += c; esc = true; continue; }
+        if (c === '"') { inStr = !inStr; out += c; continue; }
+        if (inStr && c === "\n") { out += "\\n"; continue; }
+        if (inStr && c === "\r") { continue; }
+        out += c;
+      }
+      return out;
+    }
+
+    let parseTarget = cleaned;
+    let parsed: GenerateEntryResponse;
+    try {
+      parsed = JSON.parse(parseTarget);
+    } catch {
+      parseTarget = repairJSONStrings(cleaned);
+      try {
+        parsed = JSON.parse(parseTarget);
+      } catch (e2) {
+        console.error("[ai/generate-entry] Raw AI text:", result.text.slice(0, 500));
+        throw e2;
+      }
+    }
 
     // Guard: ensure required fields are present and correct types before sending to client
     if (
