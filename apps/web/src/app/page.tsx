@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { trackLead } from "@/lib/facebook-pixel";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ function Navbar() {
               onMouseLeave={e => (e.currentTarget.style.color = "#555")}
             >{label}</button>
           ))}
-          <Link href={SIGNUP_URL} style={{
+          <Link href={SIGNUP_URL} onClick={trackLead} style={{
             padding: "9px 22px", borderRadius: 8,
             background: DARK, color: "white",
             fontSize: 14, fontWeight: 600, textDecoration: "none",
@@ -95,7 +96,7 @@ function Navbar() {
               padding: "12px 0", borderBottom: "1px solid rgba(140,90,60,0.08)",
             }}>{label}</button>
           ))}
-          <Link href={SIGNUP_URL} style={{
+          <Link href={SIGNUP_URL} onClick={trackLead} style={{
             display: "block", marginTop: 16,
             padding: "13px 0", borderRadius: 10, textAlign: "center",
             background: DARK, color: "white",
@@ -199,7 +200,7 @@ function Hero() {
 
           {/* CTAs */}
           <div className="hero-ctas">
-            <Link href={SIGNUP_URL} style={{
+            <Link href={SIGNUP_URL} onClick={trackLead} style={{
               padding: "11px 24px", borderRadius: 8,
               background: DARK, color: "white",
               fontSize: 13, fontWeight: 700, textDecoration: "none",
@@ -606,7 +607,7 @@ function PricingSection() {
               </div>
             ))}
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <Link href={SIGNUP_URL} style={{
+              <Link href={SIGNUP_URL} onClick={trackLead} style={{
                 display: "inline-block",
                 padding: "10px 36px", borderRadius: 9,
                 border: `2px solid ${DARK}`, color: DARK,
@@ -651,7 +652,7 @@ function PricingSection() {
               </div>
             ))}
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <Link href={SIGNUP_URL} style={{
+              <Link href={SIGNUP_URL} onClick={trackLead} style={{
                 display: "inline-block",
                 padding: "10px 36px", borderRadius: 9,
                 background: BROWN, color: "white",
@@ -928,7 +929,7 @@ function FinalCTA() {
         <p style={{ fontSize: "clamp(12px, 1.5vw, 15px)", color: "rgba(255,255,255,0.5)", lineHeight: 1.75, margin: "0 0 28px" }}>
           Join 100+ students already using SiLog to save 50+ hours on their SIWES logbook. Start free today — no credit card required.
         </p>
-        <Link href={SIGNUP_URL} style={{
+        <Link href={SIGNUP_URL} onClick={trackLead} style={{
           display: "inline-block",
           padding: "12px 32px", borderRadius: 10,
           background: BROWN, color: "white",

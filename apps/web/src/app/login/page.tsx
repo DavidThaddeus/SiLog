@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/store/onboarding";
 import { isFunaabEmail } from "@/lib/pricing";
+import { trackCompleteRegistration } from "@/lib/facebook-pixel";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -116,6 +117,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
+    trackCompleteRegistration();
     useOnboardingStore.getState().reset();
     router.replace("/onboarding");
     setLoading(false);

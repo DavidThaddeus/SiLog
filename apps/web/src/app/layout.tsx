@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./sw-register";
+import { FacebookPixelScript } from "@/components/FacebookPixelScript";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -87,6 +88,7 @@ export default function RootLayout({
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <body className="font-sans antialiased min-h-screen">
+        <FacebookPixelScript />
         <ServiceWorkerRegister />
         {children}
       </body>
