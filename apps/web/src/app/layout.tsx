@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans, DM_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./sw-register";
 import { FacebookPixelScript } from "@/components/FacebookPixelScript";
@@ -87,6 +88,20 @@ export default function RootLayout({
       lang="en"
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-B08CZLGC33"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-B08CZLGC33');
+          `}
+        </Script>
+      </head>
       <body className="font-sans antialiased min-h-screen">
         <FacebookPixelScript />
         <ServiceWorkerRegister />
